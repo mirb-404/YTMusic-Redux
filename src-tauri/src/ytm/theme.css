@@ -1,0 +1,121 @@
+/* YTMusic Redux "Modern UI" theme for music.youtube.com.
+   Flat surfaces matching the app shell. The app renders its own player bar, so YTM's bar
+   is hidden and its reserved space removed. */
+
+ytmusic-app {
+  --ytmr-accent: #f0445f;
+  --ytmr-bg: #0b0b0f;
+  --ytmr-surface: #0f0f14;
+  --ytmr-line: rgba(255, 255, 255, 0.08);
+  --ytmusic-player-bar-height: 0px !important;
+  --ytmusic-background: transparent !important;
+  --ytmusic-general-background-c: transparent !important;
+  --ytmusic-player-page-background: transparent !important;
+  --ytmusic-brand-background-solid: var(--ytmr-surface) !important;
+  --ytmusic-color-youtubered: var(--ytmr-accent) !important;
+  --ytmusic-static-brand-red: var(--ytmr-accent) !important;
+  --ytmusic-player-bar-ink-color: var(--ytmr-accent) !important;
+  --ytmusic-search-background: rgba(255, 255, 255, 0.06) !important;
+}
+
+/* Hide YTM's own player bar; the app's bar replaces it. */
+ytmusic-app-layout > ytmusic-player-bar,
+#player-bar-background {
+  display: none !important;
+}
+
+ytmusic-app *:not(.material-symbols-outlined) {
+  font-family: "Segoe UI Variable Text", "Segoe UI", system-ui, Roboto, sans-serif !important;
+}
+
+/* html and body sit outside ytmusic-app, so its variables are not visible here. */
+html, body {
+  background: #0b0b0f !important;
+}
+
+/* YTM's page-header art backdrop. */
+ytmusic-browse-response #background.immersive-background {
+  display: none !important;
+}
+ytmusic-browse-response .background-gradient {
+  background: none !important;
+}
+
+/* Navigation */
+#nav-bar-background {
+  opacity: 1 !important;
+  background: var(--ytmr-bg) !important;
+  border-bottom: 1px solid var(--ytmr-line);
+}
+#nav-bar-divider { display: none !important; }
+#guide-wrapper {
+  background: var(--ytmr-bg) !important;
+  border-right: 1px solid var(--ytmr-line) !important;
+}
+ytmusic-guide-entry-renderer tp-yt-paper-item {
+  border-radius: 8px !important;
+}
+ytmusic-guide-entry-renderer[active] tp-yt-paper-item {
+  background: rgba(255, 255, 255, 0.08) !important;
+}
+
+/* Search */
+ytmusic-search-box .search-box,
+ytmusic-search-box #input-box {
+  border-radius: 8px !important;
+}
+ytmusic-search-box .search-box {
+  background: rgba(255, 255, 255, 0.06) !important;
+  border: 1px solid var(--ytmr-line) !important;
+}
+
+/* Chips */
+ytmusic-chip-cloud-chip-renderer .gradient-box,
+ytmusic-chip-cloud-chip-renderer a {
+  border-radius: 8px !important;
+}
+
+/* Artwork and rows */
+ytmusic-two-row-item-renderer .image-wrapper,
+ytmusic-two-row-item-renderer ytmusic-thumbnail-renderer,
+ytmusic-two-row-item-renderer img {
+  border-radius: 8px !important;
+}
+ytmusic-responsive-list-item-renderer {
+  border-radius: 8px;
+}
+ytmusic-responsive-list-item-renderer:hover {
+  background: rgba(255, 255, 255, 0.05) !important;
+}
+ytmusic-responsive-list-item-renderer img,
+ytmusic-player-queue-item img {
+  border-radius: 4px !important;
+}
+ytmusic-player-queue-item {
+  border-radius: 8px;
+}
+ytmusic-player-queue-item[selected] {
+  background: rgba(255, 255, 255, 0.07) !important;
+}
+ytmusic-player-page #song-image img,
+ytmusic-player-page #thumbnail img,
+ytmusic-player-page #player {
+  border-radius: 12px !important;
+}
+
+/* Menus */
+tp-yt-iron-dropdown ytmusic-menu-popup-renderer,
+ytmusic-menu-popup-renderer tp-yt-paper-listbox {
+  border-radius: 10px !important;
+  background: #18181f !important;
+}
+
+/* Scrollbars */
+::-webkit-scrollbar { width: 10px !important; background: transparent !important; }
+::-webkit-scrollbar-thumb {
+  background: rgba(255, 255, 255, 0.14) !important;
+  border-radius: 10px;
+  border: 3px solid transparent;
+  background-clip: padding-box;
+}
+::-webkit-scrollbar-thumb:hover { background-color: rgba(255, 255, 255, 0.24) !important; }

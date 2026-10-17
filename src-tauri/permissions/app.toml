@@ -1,0 +1,60 @@
+[[set]]
+identifier = "ytm-bridge"
+description = "Commands the injected YouTube Music bridge may call."
+permissions = [
+  "allow-ytm-get-config",
+  "allow-ytm-loaded",
+  "allow-ytm-video-progress",
+  "allow-ytm-video-state",
+  "allow-ytm-video-data",
+  "allow-ytm-store-state",
+  "allow-ytm-playlist-created",
+  "allow-ytm-playlist-deleted",
+  "allow-ytm-playlists-response",
+  "allow-ytm-url-changed",
+  "allow-ytm-fullscreen",
+  "allow-ytm-toggle-fullscreen",
+  "allow-ytm-window-action"
+]
+
+[[set]]
+identifier = "ui"
+description = "Commands for the local UI windows."
+permissions = [
+  "allow-get-settings",
+  "allow-set-setting",
+  "allow-reset-settings",
+  "allow-get-memory",
+  "allow-get-player-state",
+  "allow-player-command",
+  "allow-sleep-timer-set",
+  "allow-open-settings",
+  "allow-toggle-mini-player",
+  "allow-show-plugins-menu",
+  "allow-toggle-fullscreen",
+  "allow-set-now-playing-open",
+  "allow-get-lyrics",
+  "allow-ytm-set-caption",
+  "allow-show-main-window",
+  "allow-ytm-recreate",
+  "allow-ytm-navigate-home",
+  "allow-ytm-history",
+  "allow-open-ytm-devtools",
+  "allow-restart-app",
+  "allow-quit-app",
+  "allow-companion-list",
+  "allow-companion-revoke",
+  "allow-companion-set-auth-enabled",
+  "allow-lastfm-signed-in",
+  "allow-lastfm-sign-out",
+  "allow-pick-css-file",
+  "allow-app-info"
+]
+
+[[set]]
+identifier = "companion-auth"
+description = "Commands for companion authorization windows."
+permissions = [
+  "allow-companion-auth-info",
+  "allow-companion-auth-result"
+]

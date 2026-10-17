@@ -1,0 +1,70 @@
+{
+  "$schema": "https://schema.tauri.app/config/2",
+  "productName": "YTMusic Redux",
+  "version": "1.0.0",
+  "identifier": "com.mirangbhandari.ytmusicredux",
+  "build": {
+    "beforeDevCommand": "npm run dev",
+    "devUrl": "http://localhost:1420",
+    "beforeBuildCommand": "npm run build",
+    "frontendDist": "../dist"
+  },
+  "app": {
+    "windows": [],
+    "security": {
+      "csp": "default-src 'self' ipc: http://ipc.localhost; img-src 'self' data: https://*.ytimg.com https://*.googleusercontent.com https://*.ggpht.com; style-src 'self' 'unsafe-inline'; font-src 'self' data:; connect-src 'self' ipc: http://ipc.localhost"
+    }
+  },
+  "plugins": {
+    "deep-link": {
+      "desktop": {
+        "schemes": [
+          "ytmr"
+        ]
+      }
+    }
+  },
+  "bundle": {
+    "active": true,
+    "targets": [
+      "msi"
+    ],
+    "license": "GPL-3.0-only",
+    "icon": [
+      "icons/32x32.png",
+      "icons/128x128.png",
+      "icons/128x128@2x.png",
+      "icons/icon.icns",
+      "icons/icon.ico"
+    ],
+    "publisher": "Mirang Bhandari",
+    "copyright": "Copyright © 2026 Mirang Bhandari and contributors. Free software under GPL-3.0.",
+    "category": "Music",
+    "shortDescription": "YouTube Music desktop client",
+    "longDescription": "YTMusic Redux by Mirang Bhandari is a fast, lightweight, open-source YouTube Music desktop client built with Rust and Tauri, with synced lyrics, an equalizer, Discord and Last.fm integrations and a remote companion API.",
+    "licenseFile": "../LICENSE",
+    "windows": {
+      "webviewInstallMode": {
+        "type": "downloadBootstrapper",
+        "silent": true
+      },
+      "wix": {
+        "upgradeCode": "41093505-6B20-4CD1-A6C6-C272068B20C2",
+        "language": "en-US",
+        "bannerPath": "installer/banner.png",
+        "dialogImagePath": "installer/dialog.png"
+      },
+      "signCommand": {
+        "cmd": "powershell",
+        "args": [
+          "-NoProfile",
+          "-ExecutionPolicy",
+          "Bypass",
+          "-File",
+          "scripts/sign.ps1",
+          "%1"
+        ]
+      }
+    }
+  }
+}

@@ -1,0 +1,24 @@
+YTMusic Redux
+Copyright (C) 2026 Mirang Bhandari and YTMusic Redux contributors
+
+Created and maintained by Mirang Bhandari.
+
+This program is free software: you can redistribute it and/or modify it under the terms of
+the GNU General Public License as published by the Free Software Foundation, version 3.
+
+This program is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY;
+without even the implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
+See the GNU General Public License in the LICENSE file for more details.
+
+Third-party work
+----------------
+Portions (the YouTube Music bridge script, companion server protocol and settings schema)
+are derived from YouTube Music Desktop App, Copyright (C) the YTMDesktop team, licensed under
+GPL-3.0: https://github.com/ytmdesktop/ytmdesktop
+
+Ratio volume is based on https://greasyfork.org/en/scripts/397686 by Marco Pfeiffer.
+Icons are from Material Icons by Google, Apache License 2.0.
+Lyrics are provided by LRCLIB (https://lrclib.net).
+
+YouTube and YouTube Music are trademarks of Google LLC. This project is not affiliated with
+or endorsed by Google.

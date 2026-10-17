@@ -1,0 +1,8 @@
+{
+  "$schema": "../gen/schemas/desktop-schema.json",
+  "identifier": "ytm-bridge",
+  "description": "The remote YouTube Music page may only report player data through the bridge commands.",
+  "webviews": ["ytm"],
+  "remote": { "urls": ["https://music.youtube.com/*"] },
+  "permissions": ["ytm-bridge"]
+}
