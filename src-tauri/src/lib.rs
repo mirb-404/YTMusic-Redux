@@ -42,7 +42,9 @@ pub fn app_ctx(app: &AppHandle) -> tauri::State<'_, AppCtx> {
 }
 
 fn browser_args(s: &settings::Settings) -> String {
-    let mut args = String::from("--disable-features=msWebOOUI,msPdfOOUI,msSmartScreenProtection");
+    // Casting is unsupported, so the media router is off: without it Chromium never offers a
+    // cast button, not even before the bridge has hidden YTM's own.
+    let mut args = String::from("--disable-features=msWebOOUI,msPdfOOUI,msSmartScreenProtection,MediaRouter,GlobalMediaControlsCastStartStop");
     args.push_str(if s.playback.continue_where_you_left_off_paused {
         " --autoplay-policy=document-user-activation-required"
     } else {

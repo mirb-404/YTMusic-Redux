@@ -23,7 +23,10 @@
   const lyrics = new LyricsTrack();
   const nowPlayingOpen = $derived(memory?.nowPlayingOpen ?? false);
   // YTM's header carries the window controls whenever it is on screen: one header, not two.
-  const showTitleBar = $derived(!fullscreen && (nowPlayingOpen || !memory?.ytmOwnsHeader));
+  // It stays in fullscreen, where its window buttons give way to an exit button.
+  const showTitleBar = $derived(nowPlayingOpen || !memory?.ytmOwnsHeader);
+  // A fullscreen window has nothing to drag or maximize.
+  const drag = $derived(fullscreen ? undefined : true);
 
   const video = $derived(player?.video ?? null);
   const playing = $derived(player?.player.trackState === 1);
@@ -96,18 +99,18 @@
 
 <div class="shell">
   {#if showTitleBar}
-  <header class="titlebar" data-tauri-drag-region>
+  <header class="titlebar" data-tauri-drag-region={drag}>
     <div class="left">
-      <div class="brand" data-tauri-drag-region>
+      <div class="brand" data-tauri-drag-region={drag}>
         <span class="logo"><Icon name="play" size={14} /></span>
-        <span class="name" data-tauri-drag-region>YTMusic</span>
+        <span class="name" data-tauri-drag-region={drag}>YTMusic</span>
       </div>
       <button class="icon-btn" title="Back" onclick={() => api.ytmHistory(false)}><Icon name="back" size={18} /></button>
       <button class="icon-btn" title="Forward" onclick={() => api.ytmHistory(true)}><Icon name="forward" size={18} /></button>
       <button class="icon-btn" title="Home" onclick={() => api.ytmNavigateHome()}><Icon name="home" size={18} /></button>
     </div>
 
-    <div class="center" data-tauri-drag-region>
+    <div class="center" data-tauri-drag-region={drag}>
       {#if video && !modernUi}
         <button class="now-playing" title="Open mini player" onclick={() => api.toggleMiniPlayer()}>
           {#if art}<img src={art} alt="" />{/if}
@@ -133,10 +136,14 @@
       <button class="icon-btn" title="Mini player" onclick={() => api.toggleMiniPlayer()}><Icon name="mini" size={18} /></button>
       <button class="icon-btn" title="Settings" onclick={() => api.openSettings()}><Icon name="settings" size={18} /></button>
       <span class="divider"></span>
-      <button class="win-btn" title="Minimize" onclick={() => appWindow.minimize()}><Icon name="minimize" size={14} /></button>
-      <button class="win-btn" title={maximized ? "Restore" : "Maximize"} onclick={() => appWindow.toggleMaximize()}>
-        <Icon name={maximized ? "restore" : "maximize"} size={13} />
-      </button>
+      {#if fullscreen}
+        <button class="win-btn" title="Exit full screen (F11)" onclick={() => api.toggleFullscreen()}><Icon name="fullscreenExit" size={18} /></button>
+      {:else}
+        <button class="win-btn" title="Minimize" onclick={() => appWindow.minimize()}><Icon name="minimize" size={14} /></button>
+        <button class="win-btn" title={maximized ? "Restore" : "Maximize"} onclick={() => appWindow.toggleMaximize()}>
+          <Icon name={maximized ? "restore" : "maximize"} size={13} />
+        </button>
+      {/if}
       <button class="win-btn close" title="Close" onclick={() => appWindow.close()}><Icon name="close" size={16} /></button>
     </div>
   </header>
@@ -189,7 +196,7 @@
     align-items: center;
     gap: 12px;
     padding: 0 0 0 10px;
-    background: #0f0f14;
+    background: var(--bg);
     border-bottom: 1px solid var(--border);
   }
 

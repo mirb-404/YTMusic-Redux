@@ -75,7 +75,7 @@
 <footer class="bar">
   <section class="track">
     <button class="art" title="Now playing" disabled={!video} onclick={() => api.command("togglePlayerPage")}>
-      {#if art}<img src={art} alt="" />{:else}<Icon name="music" size={26} />{/if}
+      {#if art}<img src={art} alt="" />{:else}<Icon name="music" size={22} />{/if}
       <span class="overlay"><Icon name="expand" size={18} /></span>
     </button>
     <div class="meta">
@@ -98,12 +98,12 @@
 
   <section class="center">
     <div class="controls">
-      <button class="icon-btn" title="Shuffle" disabled={!video} onclick={() => api.command("shuffle")}><Icon name="shuffle" size={19} /></button>
-      <button class="icon-btn big" title="Previous" disabled={!video} onclick={() => api.command("previous")}><Icon name="previous" size={26} /></button>
+      <button class="icon-btn" title="Shuffle" disabled={!video} onclick={() => api.command("shuffle")}><Icon name="shuffle" size={20} /></button>
+      <button class="icon-btn big" title="Previous" disabled={!video} onclick={() => api.command("previous")}><Icon name="previous" size={24} /></button>
       <button class="play" title={playing ? "Pause" : "Play"} disabled={!video} onclick={() => api.command("playPause")}>
-        <Icon name={playing ? "pause" : "play"} size={26} />
+        <Icon name={playing ? "pause" : "play"} size={22} />
       </button>
-      <button class="icon-btn big" title="Next" disabled={!video} onclick={() => api.command("next")}><Icon name="next" size={26} /></button>
+      <button class="icon-btn big" title="Next" disabled={!video} onclick={() => api.command("next")}><Icon name="next" size={24} /></button>
       <button
         class="icon-btn"
         class:active={repeatMode > 0}
@@ -111,7 +111,7 @@
         disabled={!video}
         onclick={() => api.command("repeatMode", (repeatMode + 1) % 3)}
       >
-        <Icon name={repeatMode === 2 ? "repeatOne" : "repeat"} size={19} />
+        <Icon name={repeatMode === 2 ? "repeatOne" : "repeat"} size={20} />
       </button>
     </div>
     <div class="seek">
@@ -125,7 +125,7 @@
     <button class="icon-btn" title="Add to playlist" disabled={!video} onclick={() => api.command("addToPlaylist")}><Icon name="playlistAdd" size={20} /></button>
     <div class="sleep">
       <button class="icon-btn" class:active={sleepLeft !== null} title="Sleep timer" onclick={() => (sleepOpen = !sleepOpen)}>
-        <Icon name="timer" size={19} />
+        <Icon name="timer" size={20} />
       </button>
       {#if sleepLeft !== null}<span class="countdown">{formatTime(sleepLeft)}</span>{/if}
       {#if sleepOpen}
@@ -145,12 +145,12 @@
       title={showVideos ? "Music videos on (switch to audio only)" : "Audio only (switch to music videos)"}
       onclick={() => api.setSetting("playback.showVideos", !showVideos)}
     >
-      <Icon name={showVideos ? "video" : "videoOff"} size={19} />
+      <Icon name={showVideos ? "video" : "videoOff"} size={20} />
     </button>
     <button class="icon-btn" title="Queue" disabled={!video} onclick={() => api.command("togglePlayerPage")}><Icon name="queue" size={20} /></button>
     <div class="volume" onwheel={wheelVolume}>
       <button class="icon-btn" title={muted ? "Unmute" : "Mute"} onclick={() => api.command(muted ? "unmute" : "mute")}>
-        <Icon name={muted || volume === 0 ? "muted" : volume < 50 ? "volumeLow" : "volume"} size={19} />
+        <Icon name={muted || volume === 0 ? "muted" : volume < 50 ? "volumeLow" : "volume"} size={20} />
       </button>
       <input
         type="range"
@@ -173,11 +173,11 @@
     height: 88px;
     flex: none;
     display: grid;
-    grid-template-columns: minmax(240px, 1fr) minmax(320px, 520px) minmax(240px, 1fr);
+    grid-template-columns: minmax(240px, 1fr) minmax(320px, 560px) minmax(240px, 1fr);
     align-items: center;
-    gap: 20px;
-    padding: 0 18px 0 14px;
-    background: #0f0f14;
+    gap: 24px;
+    padding: 0 16px;
+    background: var(--bg);
     border-top: 1px solid var(--border);
   }
   section { position: relative; min-width: 0; }
@@ -186,60 +186,70 @@
   .art {
     position: relative;
     width: 56px; height: 56px; flex: none;
-    border-radius: 8px; overflow: hidden;
+    border-radius: 6px; overflow: hidden;
     display: grid; place-items: center;
-    background: var(--surface-hover);
+    background: var(--surface);
     color: var(--text-faint);
   }
   .art img { width: 100%; height: 100%; object-fit: cover; }
   .overlay {
     position: absolute; inset: 0;
     display: grid; place-items: center;
-    background: rgba(0, 0, 0, 0.45); color: #fff;
-    opacity: 0; transition: opacity 0.2s;
+    background: rgba(0, 0, 0, 0.5); color: #fff;
+    opacity: 0; transition: opacity 0.15s var(--ease);
   }
   .art:not(:disabled):hover .overlay { opacity: 1; }
   .meta { min-width: 0; flex: 0 1 auto; }
-  .title { font-weight: 700; font-size: 14.5px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-  .sub { color: var(--text-muted); font-size: 12.5px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; margin-top: 1px; }
-  .dot { margin: 0 6px; color: var(--text-faint); }
+  .title { font-weight: 600; font-size: 14px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .sub { color: var(--text-muted); font-size: 12.5px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; margin-top: 2px; }
+  .dot { margin: 0 5px; color: var(--text-faint); }
   .ad {
-    display: inline-block; margin-right: 6px; padding: 0 6px;
-    border-radius: 4px; background: var(--warning); color: #111;
-    font-size: 10.5px; font-weight: 800; vertical-align: 2px;
+    display: inline-block; margin-right: 6px; padding: 0 5px;
+    border-radius: 3px; border: 1px solid var(--text-faint); color: var(--text-muted);
+    font-size: 10px; font-weight: 600; line-height: 15px; vertical-align: 1px;
   }
-  .rate { display: flex; flex: none; }
+  .rate { display: flex; flex: none; margin-left: 4px; }
 
-  .center { display: flex; flex-direction: column; align-items: stretch; gap: 2px; }
-  .controls { display: flex; align-items: center; justify-content: center; gap: 10px; }
-  .icon-btn.big { width: 38px; height: 38px; color: var(--text); }
+  .center { display: flex; flex-direction: column; align-items: stretch; gap: 0; }
+  .controls { display: flex; align-items: center; justify-content: center; gap: 12px; }
+  .icon-btn.big { width: 36px; height: 36px; color: var(--text); }
   .play {
-    width: 42px; height: 42px; border-radius: 50%;
+    width: 38px; height: 38px; border-radius: 50%;
     display: grid; place-items: center;
-    background: #fff; color: #0b0b0f;
-    transition: transform 0.12s var(--ease), background 0.12s;
+    background: var(--text); color: var(--bg);
+    transition: transform 0.12s var(--ease);
   }
-  .play:hover { background: #e9e9ee; }
-  .play:active { transform: scale(0.95); }
-  .play:disabled { opacity: 0.4; }
-  .seek { display: flex; align-items: center; gap: 6px; }
-  .time { font-size: 11.5px; color: var(--text-muted); font-variant-numeric: tabular-nums; min-width: 38px; }
+  .play:hover { transform: scale(1.05); }
+  .play:active { transform: scale(0.96); }
+  .play:disabled { opacity: 0.35; transform: none; }
+  .seek { display: flex; align-items: center; gap: 8px; }
+  .time { font-size: 11px; color: var(--text-faint); font-variant-numeric: tabular-nums; min-width: 36px; }
   .time.end { text-align: right; }
+
+  /* Toggles read as on through a dot under the icon, not by recoloring it. */
+  .bar .icon-btn.active { position: relative; color: var(--text); }
+  .bar .icon-btn.active::after {
+    content: "";
+    position: absolute; left: 50%; bottom: 1px;
+    width: 4px; height: 4px; margin-left: -2px; border-radius: 50%;
+    background: var(--accent);
+  }
+  .rate .icon-btn.active::after { display: none; }
 
   .extras { display: flex; align-items: center; justify-content: flex-end; gap: 2px; }
   .sleep { position: relative; display: flex; align-items: center; }
-  .countdown { font-size: 11px; font-weight: 700; color: var(--accent); font-variant-numeric: tabular-nums; margin-right: 4px; }
+  .countdown { font-size: 11px; font-weight: 600; color: var(--text-muted); font-variant-numeric: tabular-nums; margin-right: 4px; }
   .menu {
-    position: absolute; bottom: calc(100% + 10px); right: -40px;
-    width: 190px; padding: 6px;
-    border-radius: 14px;
-    background: rgba(24, 24, 32, 0.98);
+    position: absolute; bottom: calc(100% + 12px); right: -40px;
+    width: 180px; padding: 4px;
+    border-radius: 8px;
+    background: var(--bg-elevated);
     border: 1px solid var(--border);
-    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.4);
+    box-shadow: 0 12px 32px rgba(0, 0, 0, 0.5);
     z-index: 5;
   }
-  .menu-title { font-size: 11px; text-transform: uppercase; letter-spacing: 0.7px; color: var(--text-faint); padding: 6px 10px; }
-  .menu button { display: block; width: 100%; text-align: left; padding: 8px 10px; border-radius: 8px; }
+  .menu-title { font-size: 12px; color: var(--text-faint); padding: 6px 10px 4px; }
+  .menu button { display: block; width: 100%; text-align: left; padding: 7px 10px; border-radius: 5px; font-size: 13px; }
   .menu button:hover { background: var(--surface-hover); }
   .menu .off { color: var(--danger); }
 
@@ -247,19 +257,22 @@
   .volume input {
     -webkit-appearance: none;
     appearance: none;
-    width: 84px; height: 4px; border-radius: 2px;
-    background: linear-gradient(90deg, var(--accent) 0 var(--fill), rgba(255, 255, 255, 0.16) var(--fill) 100%);
+    width: 88px; height: 4px; border-radius: 2px;
+    background: linear-gradient(90deg, var(--fill-color, var(--text-muted)) 0 var(--fill), rgba(255, 255, 255, 0.14) var(--fill) 100%);
     cursor: pointer;
   }
+  .volume:hover input { --fill-color: var(--accent); }
   .volume input::-webkit-slider-thumb {
     -webkit-appearance: none;
     width: 12px; height: 12px; border-radius: 50%;
     background: #fff;
+    opacity: 0;
+    transition: opacity 0.12s;
   }
+  .volume:hover input::-webkit-slider-thumb, .volume input:focus-visible::-webkit-slider-thumb { opacity: 1; }
 
   @media (max-width: 900px) {
     .bar { grid-template-columns: minmax(160px, 1fr) minmax(260px, 2fr) auto; gap: 12px; }
     .rate, .volume input { display: none; }
   }
-
 </style>

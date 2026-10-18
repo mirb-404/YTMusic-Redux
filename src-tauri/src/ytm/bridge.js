@@ -87,8 +87,9 @@
       .ytmd-player-bar-control.library-button, .ytmd-player-bar-control.playlist-button { margin-left: 8px; }
       .ytmd-player-bar-control.library-button.hidden, .ytmd-player-bar-control.playlist-button.hidden { display: none; }
       .ytmd-player-bar-control.sleep-timer-button.active { color: #fff; }
-      ytmusic-player.ytmr-hide-video #song-video { display: none !important; }
-      #ytmr-art { display: none; position: absolute; inset: 0; width: 100%; height: 100%; object-fit: contain; background: #000; z-index: 5; pointer-events: none; }
+      ytmusic-player.ytmr-hide-video { contain: layout; }
+      ytmusic-player.ytmr-hide-video #song-video, ytmusic-player.ytmr-hide-video:has(> #ytmr-art[src]) #song-image { visibility: hidden !important; }
+      #ytmr-art { display: none; position: absolute; inset: 0; width: 100%; height: 100%; object-fit: contain; z-index: 5; pointer-events: none; }
       ytmusic-player.ytmr-hide-video #ytmr-art[src] { display: block; }
     `;
     document.head.appendChild(css);
@@ -501,6 +502,7 @@
       // A user's own click on YTM's Song/Video switch wins for that track.
       if (this.manualSwitch) {
         this.manualSwitch = false;
+        setTimeout(() => this.applyArt(), 400);
         return;
       }
       setTimeout(() => this.applyVideoMode(), 400);
@@ -520,11 +522,21 @@
       if (toggle && !toggle.hasAttribute("toggle-disabled") && player.getAttribute("playback-mode") !== wanted) {
         toggle.querySelector(show ? ".video-button" : ".song-button")?.click();
       }
-      // Tracks that only exist as a video show their artwork instead.
+      this.applyArt();
+      player.classList.toggle("ytmr-hide-video", !show);
+    },
+    // With videos off the player area shows the track's artwork, also for tracks that only
+    // exist as a video. The queue item's thumbnail replaces the response's one on track
+    // change; it is small, so googleusercontent URLs are asked for at full size.
+    applyArt() {
+      const player = document.querySelector("ytmusic-player");
+      if (!player) return;
       const thumbnails = hook().ytmPlayerBar?.playerApi?.getPlayerResponse()?.videoDetails?.thumbnail?.thumbnails;
-      const art = thumbnails?.length ? thumbnails[thumbnails.length - 1].url : null;
+      const largest = thumbnails?.length ? [...thumbnails].sort((a, b) => b.width - a.width)[0].url : null;
+      const art = largest?.replace(/=w\d+-h\d+/, "=w1200-h1200") ?? null;
       let img = document.getElementById("ytmr-art");
-      if (!img) {
+      if (!img || img.parentNode !== player) {
+        img?.remove();
         img = document.createElement("img");
         img.id = "ytmr-art";
         img.alt = "";
@@ -532,7 +544,6 @@
       }
       if (art) img.src = art;
       else img.removeAttribute("src");
-      player.classList.toggle("ytmr-hide-video", !show);
     },
     // Media can be routed through Web Audio only once, so the graph is created on first
     // need and kept; neutral settings make it a pass-through.
@@ -601,6 +612,14 @@
     },
     true
   );
+  // Esc leaves app fullscreen too, unless YTM used it (closing a dialog or the search box)
+  // or the page itself is fullscreen, which the browser exits on its own.
+  let appFullscreen = false;
+  window.addEventListener("keydown", (e) => {
+    if (e.key !== "Escape" || !appFullscreen || e.defaultPrevented || document.fullscreenElement) return;
+    if (e.target.closest?.("input, textarea, [contenteditable], tp-yt-paper-dialog, tp-yt-iron-dropdown")) return;
+    invoke("ytm_toggle_fullscreen");
+  });
 
   // --- Window controls in YTM's header, which replaces the app title bar (one header).
   const ICONS = {
@@ -610,6 +629,7 @@
     minimize: "M5 11h14v2H5z",
     maximize: "M4 4h16v16H4V4zm2 2v12h12V6H6z",
     restore: "M8 4h12v12h-2V6H8V4zM4 8h12v12H4V8zm2 2v8h8v-8H6z",
+    fullscreenExit: "M5 16h3v3h2v-5H5v2zm3-8H5v2h5V5H8v3zm6 11h2v-3h3v-2h-5v5zm2-11V5h-2v5h5V8h-3z",
     close: "M19 6.41L17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"
   };
   // Clicks on these start no window drag.
@@ -640,6 +660,8 @@
       #ytmr-window-controls .divider { width: 1px; height: 18px; margin: 23px 8px 0; background: rgba(255,255,255,0.12); }
       #ytmr-window-controls .win { width: 46px; height: 36px; }
       #ytmr-window-controls .win.close:hover { background: #c42b1c; }
+      #ytmr-window-controls .fs, #ytmr-window-controls.fullscreen .win:not(.close):not(.fs) { display: none; }
+      #ytmr-window-controls.fullscreen .fs { display: grid; }
       ytmusic-nav-bar #right-content { transform: translateX(calc(-1 * var(--ytmr-controls-width, 0px))); }
     `;
     document.head.appendChild(css);
@@ -657,6 +679,7 @@
     const divider = document.createElement("span");
     divider.className = "divider";
     const maximize = button("win", "Maximize", "maximize", 13, "toggleMaximize");
+    const exitFullscreen = button("win fs", "Exit full screen (F11)", "fullscreenExit", 18, "toggleFullscreen");
     bar.append(
       button("app plugins", "Plugins", "plugins", 16, "plugins", "Plugins"),
       button("app", "Mini player", "mini", 18, "mini"),
@@ -664,11 +687,16 @@
       divider,
       button("win", "Minimize", "minimize", 14, "minimize"),
       maximize,
+      exitFullscreen,
       button("win close", "Close", "close", 16, "close")
     );
     document.body.appendChild(bar);
     document.documentElement.style.setProperty("--ytmr-controls-width", `${bar.offsetWidth}px`);
 
+    window.__YTMR__.setFullscreen = (on) => {
+      appFullscreen = on;
+      bar.classList.toggle("fullscreen", on);
+    };
     window.__YTMR__.setMaximized = (maximized) => {
       maximize.title = maximized ? "Restore" : "Maximize";
       maximize.querySelector("path").setAttribute("d", ICONS[maximized ? "restore" : "maximize"]);
@@ -676,7 +704,8 @@
 
     // The empty parts of the header move the window; double click maximizes.
     document.querySelector("ytmusic-nav-bar").addEventListener("mousedown", (e) => {
-      if (e.button !== 0 || e.target.closest(NO_DRAG)) return;
+      // A fullscreen window has nothing to drag or maximize.
+      if (e.button !== 0 || appFullscreen || e.target.closest(NO_DRAG)) return;
       windowAction(e.detail === 2 ? "toggleMaximize" : "drag");
     });
   }
@@ -810,9 +839,11 @@
     setCustomCss,
     setModernUi,
     setCaption,
+    exitFullscreen: () => document.fullscreenElement && document.exitFullscreen(),
     setAudio: (config) => audio.set(config),
     // Replaced once the window controls exist.
     setMaximized: () => {},
+    setFullscreen: (on) => (appFullscreen = on),
     setVolumeSliderPersist,
     togglePlayerPage: () => exec("togglePlayerPage"),
     addToPlaylist: () => exec("addToPlaylist")
@@ -825,6 +856,13 @@
   // Requested early so the round trip overlaps page loading.
   const configPromise = ipcReady.then(() => invoke("ytm_get_config"));
   if (window.__YTMR_THEME__) waitFor(() => document.documentElement).then(() => setModernUi(window.__YTMR_THEME__));
+  // Casting is unsupported. YTM's cast button is hidden from the first paint rather than
+  // once the player is ready, so it never shows while the page loads.
+  waitFor(() => document.documentElement).then(() => {
+    const css = document.createElement("style");
+    css.textContent = "ytmusic-cast-button, ytmusic-cast-dialog-renderer { display: none !important; }";
+    (document.head || document.documentElement).appendChild(css);
+  });
   waitFor(() => document.body && document.querySelector("ytmusic-nav-bar"))
     .then(() => ipcReady)
     .then(() => {

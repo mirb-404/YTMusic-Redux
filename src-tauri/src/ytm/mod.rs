@@ -200,6 +200,7 @@ pub fn create(app: &AppHandle) -> tauri::Result<()> {
         .initialization_script(format!("window.__YTMR_THEME__ = {theme};
 {}", bridge::SCRIPT))
         .additional_browser_args(&ctx.browser_args)
+        .background_color(windows::BACKGROUND)
         .devtools(settings.developer.enable_dev_tools)
         .on_navigation(move |url| {
             if is_premium_page(url) {

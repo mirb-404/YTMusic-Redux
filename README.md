@@ -34,6 +34,65 @@ and adds a mini player and a redesigned interface.
 | **New:** Modern UI (default on, Settings → Appearance) | App-rendered bottom player bar with a Samsung Music-style **wave seek line** (the played part ripples while playing, flat when paused), glass theme for the YTM page, artwork-tinted ambient background, sleep timer with countdown |
 | **New:** mini player | Always-on-top player with the same wave seek line, like, volume (scroll on art) |
 
+## Why Redux
+
+YTM Desktop is the best-known YouTube Music client, but its issue tracker shows the same
+complaints over and over: a heavy download, high CPU use, and long-standing feature requests that
+are still open. YTMusic Redux keeps every upstream feature (see [Features](#features)), fixes those
+pain points, and ships at **about 1/30 of the size**.
+
+### Lightweight
+
+| | YTMusic Redux 1.0.0 | YTM Desktop 2.0.12 |
+| --- | --- | --- |
+| Windows installer | **5.2 MB** (MSI) | 157.3 MB (`Setup.exe`) |
+| Browser engine | Windows' own WebView2, shared with the OS | A private copy of Chromium in every install |
+| Backend | Native Rust | Node.js |
+
+Sizes are from this repository's release build and upstream's latest GitHub release.
+
+Upstream users have reported
+[very high CPU use while nothing plays](https://github.com/ytmdesktop/ytmdesktop/issues/359),
+[high CPU on macOS](https://github.com/ytmdesktop/ytmdesktop/issues/125),
+[an app slow enough to slow down the whole system](https://github.com/ytmdesktop/ytmdesktop/issues/249),
+[a memory leak](https://github.com/ytmdesktop/ytmdesktop/issues/699) and
+[a UI that is slow and laggy, with tracks stopping or skipping](https://github.com/ytmdesktop/ytmdesktop/issues/1570).
+Redux avoids most of that overhead by design:
+
+- No Node.js process and no bundled Chromium. The backend (player state, companion server, Discord
+  IPC, Last.fm, tray, shortcuts, taskbar) is native Rust.
+- Idle costs nothing: the seek-bar animation stops when playback pauses, and lyrics are fetched
+  only while something shows them.
+- Turning videos off switches YouTube Music to the audio stream, so it also saves bandwidth.
+
+The YouTube Music page is still the biggest consumer of memory in both apps. Redux removes the
+runtime around it.
+
+### Features upstream users are still asking for
+
+| Upstream request | In Redux |
+| --- | --- |
+| [Ability to turn off video](https://github.com/ytmdesktop/ytmdesktop/issues/46) (open since the early days, 30+ comments) | One-click audio-only mode. The player shows the track's artwork instead of a blank area |
+| [Realtime lyrics](https://github.com/ytmdesktop/ytmdesktop/issues/809), [lyrics in the same window](https://github.com/ytmdesktop/ytmdesktop/issues/1005) | Synced lyrics in a built-in Now Playing view (LRCLIB). Click a line to seek. Optional lyric captions over the player |
+| [Equalizer](https://github.com/ytmdesktop/ytmdesktop/issues/819) | 10-band equalizer in Settings → Audio |
+| [Crossfade](https://github.com/ytmdesktop/ytmdesktop/issues/391) | Fade out the end of each track and fade in the next (0–12 s) |
+| [Mini player for v2](https://github.com/ytmdesktop/ytmdesktop/issues/1251) | Always-on-top mini player with seek, like and volume controls |
+| [Sleep timer](https://github.com/ytmdesktop/ytmdesktop/issues/451) | Sleep timer in the player bar, with a live countdown |
+| — | Playback speed (0.5×–2×) |
+| — | Modern UI: an app-rendered player bar that stays visible in fullscreen, and a theme that matches it |
+
+### Security by default
+
+The YouTube Music page can call only the whitelisted `ytm_*` commands, and each command checks
+that the caller is the YTM webview (see [Security notes](#security-notes)). Electron gives the
+app broad Node.js access, which has to be locked down by hand.
+
+### Trade-offs
+
+Redux is Windows-only for now and has no auto-updater (see
+[Differences from upstream](#differences-from-upstream)). Upstream also builds for macOS and
+Linux.
+
 ## Setup
 
 Prerequisites: Rust (stable), Node 20+, and the [Tauri prerequisites](https://tauri.app/start/prerequisites/) (WebView2 on Windows).

@@ -17,6 +17,9 @@ pub const AUTH_PREFIX: &str = "companion-auth-";
 pub const TITLE_BAR_HEIGHT: f64 = 40.0;
 /// Height of the app-rendered player bar (Modern UI), in logical pixels.
 pub const PLAYER_BAR_HEIGHT: f64 = 88.0;
+/// The app's background (`--bg`). Window and webviews paint it before content arrives, so
+/// resizing, maximizing and restoring never flash white.
+pub const BACKGROUND: tauri::window::Color = tauri::window::Color(11, 11, 15, 255);
 
 pub fn create_main(app: &AppHandle) -> tauri::Result<()> {
     let ctx = app_ctx(app);
@@ -26,6 +29,7 @@ pub fn create_main(app: &AppHandle) -> tauri::Result<()> {
         .decorations(false)
         .inner_size(1280.0, 760.0)
         .min_inner_size(320.0, 240.0)
+        .background_color(BACKGROUND)
         .visible(false)
         .build()?;
     if let Some(b) = bounds {
@@ -41,12 +45,15 @@ pub fn create_main(app: &AppHandle) -> tauri::Result<()> {
     let size = window.inner_size()?.to_logical::<f64>(window.scale_factor()?);
     let shell = WebviewBuilder::new(SHELL, WebviewUrl::App("index.html?view=shell".into()))
         .additional_browser_args(&ctx.browser_args)
+        .background_color(BACKGROUND)
         .auto_resize();
     window.add_child(shell, LogicalPosition::new(0.0, 0.0), size)?;
 
     let app_handle = app.clone();
     window.on_window_event(move |event| match event {
-        WindowEvent::Resized(_) => {
+        // Minimizing resizes the window to nothing. Laying out for that would squash YTM into a
+        // 1px view that reflows and pops back in on restore, so the layout is kept as it was.
+        WindowEvent::Resized(size) if size.width > 0 && size.height > 0 => {
             layout_main(&app_handle);
             emit_window_state(&app_handle);
         }
@@ -77,38 +84,46 @@ pub fn emit_window_state(app: &AppHandle) {
         let _ = app.emit_to(
             tauri::EventTarget::webview(SHELL),
             "window-state",
-            serde_json::json!({ "maximized": maximized, "fullscreen": w.is_fullscreen().unwrap_or(false) }),
+            serde_json::json!({ "maximized": maximized, "fullscreen": is_fullscreen() }),
         );
         ytm::call(app, "setMaximized", &[serde_json::json!(maximized)]);
+        ytm::call(app, "setFullscreen", &[serde_json::json!(is_fullscreen())]);
     }
 }
 
-/// Fullscreen requested by YTM's video player, which covers the whole window. App
-/// fullscreen (F11) only hides the title bar and keeps the player bar.
+/// App fullscreen (F11) and fullscreen requested by YTM's video player. The window is
+/// fullscreen while either is on, and leaving video fullscreen returns to the app's own
+/// state. Kept here rather than read back from the window, which reports the new state only
+/// after the resize lands and so would lay out the views for the old one.
+static APP_FULLSCREEN: AtomicBool = AtomicBool::new(false);
 static VIDEO_FULLSCREEN: AtomicBool = AtomicBool::new(false);
 
+fn is_fullscreen() -> bool {
+    APP_FULLSCREEN.load(Ordering::Relaxed) || VIDEO_FULLSCREEN.load(Ordering::Relaxed)
+}
+
 /// Positions the YTM view between the title bar and the player bar, and shows it unless
-/// it is still loading or the now playing view covers it.
+/// it is still loading or the now playing view covers it. Both bars stay in fullscreen, so
+/// every control remains reachable: the theme hides YTM's own player bar, and the header
+/// swaps its window buttons for an exit button.
 pub fn layout_main(app: &AppHandle) {
     let (Some(window), Some(view)) = (app.get_window(MAIN), ytm::webview(app)) else { return };
     let (Ok(size), Ok(scale)) = (window.inner_size(), window.scale_factor()) else { return };
     let size = size.to_logical::<f64>(scale);
     let ctx = app_ctx(app);
-    let fullscreen = window.is_fullscreen().unwrap_or(false);
-    let video = fullscreen && VIDEO_FULLSCREEN.load(Ordering::Relaxed);
+    let video = VIDEO_FULLSCREEN.load(Ordering::Relaxed);
     let owns_header = ctx.memory.read(|m| m.ytm_owns_header);
-    let top = if fullscreen || owns_header { 0.0 } else { TITLE_BAR_HEIGHT };
-    let bottom = if !video && ctx.settings.get().appearance.modern_ui { PLAYER_BAR_HEIGHT } else { 0.0 };
+    let top = if owns_header { 0.0 } else { TITLE_BAR_HEIGHT };
+    let bottom = if ctx.settings.get().appearance.modern_ui { PLAYER_BAR_HEIGHT } else { 0.0 };
     let _ = view.set_position(LogicalPosition::new(0.0, top));
     let _ = view.set_size(LogicalSize::new(size.width, (size.height - top - bottom).max(1.0)));
     let (loading, covered) = ctx.memory.read(|m| (m.ytm_view_loading, m.now_playing_open && !video));
     let _ = if loading || covered { view.hide() } else { view.show() };
 }
 
-fn apply_fullscreen(app: &AppHandle, fullscreen: bool, video: bool) {
+fn apply_fullscreen(app: &AppHandle) {
     if let Some(w) = app.get_window(MAIN) {
-        VIDEO_FULLSCREEN.store(fullscreen && video, Ordering::Relaxed);
-        let _ = w.set_fullscreen(fullscreen);
+        let _ = w.set_fullscreen(is_fullscreen());
         layout_main(app);
         emit_window_state(app);
     }
@@ -116,13 +131,19 @@ fn apply_fullscreen(app: &AppHandle, fullscreen: bool, video: bool) {
 
 /// Video fullscreen, entered and left by YTM's player.
 pub fn set_video_fullscreen(app: &AppHandle, fullscreen: bool) {
-    apply_fullscreen(app, fullscreen, true);
+    VIDEO_FULLSCREEN.store(fullscreen, Ordering::Relaxed);
+    apply_fullscreen(app);
 }
 
-/// App fullscreen (F11).
+/// App fullscreen (F11). Leaving it also leaves video fullscreen.
 pub fn toggle_fullscreen(app: &AppHandle) {
-    let on = app.get_window(MAIN).is_some_and(|w| !w.is_fullscreen().unwrap_or(false));
-    apply_fullscreen(app, on, false);
+    let on = !is_fullscreen();
+    APP_FULLSCREEN.store(on, Ordering::Relaxed);
+    if !on {
+        VIDEO_FULLSCREEN.store(false, Ordering::Relaxed);
+        ytm::call(app, "exitFullscreen", &[]);
+    }
+    apply_fullscreen(app);
 }
 
 /// Shows or hides the app's now playing view in place of the YTM view.

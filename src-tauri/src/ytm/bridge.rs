@@ -159,6 +159,10 @@ pub async fn ytm_window_action(webview: Webview, app: AppHandle, action: String)
             _ => window.maximize(),
         },
         "close" => window.close(),
+        "toggleFullscreen" => {
+            windows::toggle_fullscreen(&app);
+            Ok(())
+        }
         "settings" => windows::open_settings(&app, None),
         "mini" => windows::toggle_mini_player(&app),
         "plugins" => crate::plugins_menu::show(&app),
