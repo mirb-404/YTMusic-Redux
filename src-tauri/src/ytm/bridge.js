@@ -1205,6 +1205,16 @@
       quietPlayUntil = open ? 0 : Date.now() + 5000;
       navigate(endpoint);
     },
+    // The app's own pages edit YTM's queue through its store, as YTM's queue does.
+    queueAdd: (items, next) => {
+      const queue = ytmStore().getState().queue;
+      const renderer = (i) => i.playlistPanelVideoRenderer || i.playlistPanelVideoWrapperRenderer?.primaryRenderer?.playlistPanelVideoRenderer;
+      const selected = queue.items.findIndex((i) => renderer(i)?.selected);
+      const index = next ? selected + 1 : queue.items.length;
+      ytmStore().dispatch({ type: "ADD_ITEMS", payload: { nextQueueItemId: queue.nextQueueItemId, index, items, shuffleEnabled: false, shouldAssignIds: true } });
+    },
+    queueRemove: (index) => ytmStore().dispatch({ type: "REMOVE_ITEM", payload: index }),
+    queueMove: (fromIndex, toIndex) => ytmStore().dispatch({ type: "MOVE_ITEM", payload: { fromIndex, toIndex } }),
     focusSearch: () => document.querySelector("ytmusic-search-box input")?.focus(),
     setAudio: (config) => audio.set(config),
     // Replaced once the window controls exist.

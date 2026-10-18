@@ -170,6 +170,133 @@ pub fn music_sign_in(app: AppHandle) {
     ytm::sign_in(&app);
 }
 
+/// Sends one of the requests an item's menu offers: like, library feedback, or an edit of
+/// the user's own playlist. The endpoint is trimmed again here, so only those go out.
+#[tauri::command]
+pub async fn music_service(app: AppHandle, endpoint: Value) -> Result<()> {
+    let endpoint = parse::service(Some(&endpoint)).ok_or("not a supported request")?;
+    if let Some(l) = endpoint.get("likeEndpoint") {
+        let path = match l.get("status").and_then(Value::as_str) {
+            Some("LIKE") => "like/like",
+            Some("DISLIKE") => "like/dislike",
+            Some("INDIFFERENT") => "like/removelike",
+            _ => return Err("unknown like status".into()),
+        };
+        let target = l.get("target").cloned().ok_or("like without a target")?;
+        call(&app, path, "", json!({ "target": target })).await?;
+    } else if let Some(f) = endpoint.get("feedbackEndpoint") {
+        call(&app, "feedback", "", json!({ "feedbackTokens": [f["feedbackToken"]] })).await?;
+    } else if let Some(p) = endpoint.get("playlistEditEndpoint") {
+        call(&app, "browse/edit_playlist", "", json!({ "playlistId": p["playlistId"], "actions": p["actions"] })).await?;
+    }
+    Ok(())
+}
+
+/// Likes, dislikes or clears a track's rating.
+#[tauri::command]
+pub async fn music_rate(app: AppHandle, video_id: String, status: String) -> Result<()> {
+    music_service(app, json!({ "likeEndpoint": { "status": status, "target": { "videoId": video_id } } })).await
+}
+
+fn queue_body(video_id: Option<String>, playlist_id: Option<String>) -> Result<Value> {
+    match (video_id, playlist_id) {
+        (Some(v), _) => Ok(json!({ "videoIds": [v] })),
+        (None, Some(p)) => Ok(json!({ "playlistId": p })),
+        (None, None) => Err("nothing to add".into()),
+    }
+}
+
+/// Play next, or add to the end of the queue. The queue lives in the YTM page, which takes
+/// the items YTM's own queue endpoint returns for the track or list.
+#[tauri::command]
+pub async fn music_queue(app: AppHandle, next: bool, video_id: Option<String>, playlist_id: Option<String>) -> Result<()> {
+    let nothing_playing = crate::app_ctx(&app).player.get().video.is_none();
+    if nothing_playing {
+        let endpoint = match (&video_id, &playlist_id) {
+            (Some(v), _) => json!({ "watchEndpoint": { "videoId": v } }),
+            (None, Some(p)) => json!({ "watchPlaylistEndpoint": { "playlistId": p } }),
+            _ => return Err("nothing to add".into()),
+        };
+        return music_play(app, endpoint);
+    }
+    let response = call(&app, "music/get_queue", "", queue_body(video_id, playlist_id)?).await?;
+    let items: Vec<Value> = response.get("queueDatas").and_then(Value::as_array).map(|q| q.iter().filter_map(|d| d.get("content").cloned()).collect()).unwrap_or_default();
+    if items.is_empty() {
+        return Err("YouTube Music returned nothing to queue".into());
+    }
+    ytm::call(&app, "queueAdd", &[Value::Array(items), json!(next)]);
+    Ok(())
+}
+
+fn queue_len(app: &AppHandle) -> usize {
+    crate::app_ctx(app).player.get().player.queue.as_ref().map_or(0, |q| q.items.len())
+}
+
+#[tauri::command]
+pub fn music_queue_remove(app: AppHandle, index: usize) -> Result<()> {
+    if index >= queue_len(&app) {
+        return Err("no such queue entry".into());
+    }
+    ytm::call(&app, "queueRemove", &[json!(index)]);
+    Ok(())
+}
+
+#[tauri::command]
+pub fn music_queue_move(app: AppHandle, from: usize, to: usize) -> Result<()> {
+    let len = queue_len(&app);
+    if from >= len || to >= len {
+        return Err("no such queue entry".into());
+    }
+    ytm::call(&app, "queueMove", &[json!(from), json!(to)]);
+    Ok(())
+}
+
+#[tauri::command]
+pub async fn music_playlist_targets(app: AppHandle, video_id: Option<String>, playlist_id: Option<String>) -> Result<Vec<parse::PlaylistTarget>> {
+    let body = queue_body(video_id, playlist_id)?;
+    Ok(parse::playlist_targets(&call(&app, "playlist/get_add_to_playlist", "", body).await?))
+}
+
+/// Saves a track, or every track of a list, to one of the user's playlists.
+#[tauri::command]
+pub async fn music_add_to_playlist(app: AppHandle, playlist_id: String, video_id: Option<String>, source_playlist_id: Option<String>) -> Result<()> {
+    let action = match (video_id, source_playlist_id) {
+        (Some(v), _) => json!({ "action": "ACTION_ADD_VIDEO", "addedVideoId": v, "dedupeOption": "DEDUPE_OPTION_SKIP" }),
+        (None, Some(p)) => json!({ "action": "ACTION_ADD_PLAYLIST", "addedFullListId": p, "dedupeOption": "DEDUPE_OPTION_SKIP" }),
+        (None, None) => return Err("nothing to add".into()),
+    };
+    call(&app, "browse/edit_playlist", "", json!({ "playlistId": playlist_id, "actions": [action] })).await?;
+    Ok(())
+}
+
+/// Creates a playlist, optionally with a first track or a copy of a list; returns its id.
+#[tauri::command]
+pub async fn music_create_playlist(
+    app: AppHandle,
+    title: String,
+    description: String,
+    privacy: String,
+    video_id: Option<String>,
+    source_playlist_id: Option<String>,
+) -> Result<String> {
+    let title = title.trim();
+    if title.is_empty() || title.chars().count() > 150 {
+        return Err("a playlist title needs 1 to 150 characters".into());
+    }
+    if !matches!(privacy.as_str(), "PUBLIC" | "UNLISTED" | "PRIVATE") {
+        return Err("unknown privacy".into());
+    }
+    let mut body = json!({ "title": title, "description": description, "privacyStatus": privacy });
+    if let Some(v) = video_id {
+        body["videoIds"] = json!([v]);
+    }
+    if let Some(p) = source_playlist_id {
+        body["sourcePlaylistId"] = json!(p);
+    }
+    let response = call(&app, "playlist/create", "", body).await?;
+    response.get("playlistId").and_then(Value::as_str).map(str::to_string).ok_or_else(|| "YouTube Music did not create the playlist".into())
+}
+
 /// Plays a song, video, album or playlist in the YTM page, as clicking it there would.
 #[tauri::command]
 pub fn music_play(app: AppHandle, endpoint: Value) -> Result<()> {

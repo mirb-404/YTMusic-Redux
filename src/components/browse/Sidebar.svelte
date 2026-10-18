@@ -2,7 +2,7 @@
   import { onMount } from "svelte";
   import Icon from "../Icon.svelte";
   import type { IconName } from "../../lib/icons";
-  import { EXPLORE, HISTORY, HOME, LIBRARY, music, router, type Endpoint, type GuideEntry } from "../../lib/music.svelte";
+  import { EXPLORE, HISTORY, HOME, LIBRARY, music, router, ui, type Endpoint, type GuideEntry } from "../../lib/music.svelte";
 
   // Refreshed when the shell sees the session change (signing in).
   let { session }: { session: number } = $props();
@@ -31,6 +31,7 @@
 
   $effect(() => {
     session;
+    ui.playlists;
     refresh();
   });
 </script>
@@ -49,8 +50,11 @@
       <p>Sign in for your library, playlists and recommendations.</p>
       <button onclick={() => music.signIn()}><Icon name="account" size={18} />Sign in</button>
     </div>
-  {:else if playlists.length}
-    <div class="label">Playlists</div>
+  {:else}
+    <div class="label-row">
+      <span class="label">Playlists</span>
+      <button class="new" title="New playlist" onclick={() => (ui.dialog = { target: null, create: true })}><Icon name="add" size={18} /></button>
+    </div>
     <div class="playlists">
       {#each playlists as p (p.endpoint.browseEndpoint?.browseId)}
         <div class="playlist" class:active={activeId === p.endpoint.browseEndpoint?.browseId}>
@@ -77,7 +81,10 @@
   .main button:hover { background: var(--surface); color: var(--text); }
   .main button.active { background: var(--surface-hover); color: var(--text); }
   .main button.active :global(svg) { color: var(--accent); }
-  .label { margin: 22px 14px 8px; font-size: 11.5px; font-weight: 700; letter-spacing: 0.8px; text-transform: uppercase; color: var(--text-faint); }
+  .label-row { display: flex; align-items: center; justify-content: space-between; margin: 22px 6px 8px 14px; }
+  .new { width: 28px; height: 28px; border-radius: 50%; display: grid; place-items: center; color: var(--text-muted); }
+  .new:hover { background: var(--surface-hover); color: var(--text); }
+  .label { font-size: 11.5px; font-weight: 700; letter-spacing: 0.8px; text-transform: uppercase; color: var(--text-faint); }
   .playlists { overflow-y: auto; min-height: 0; scrollbar-width: thin; padding-bottom: 8px; }
   .playlist { position: relative; display: flex; align-items: center; border-radius: 8px; transition: background 0.15s; }
   .playlist:hover { background: var(--surface); }

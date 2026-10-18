@@ -3,7 +3,7 @@ import { listen } from "@tauri-apps/api/event";
 
 export type Thumbnail = { url: string; width: number; height: number };
 
-export type QueueItem = { thumbnails: Thumbnail[]; title: string; author: string; videoId: string };
+export type QueueItem = { thumbnails: Thumbnail[]; title: string; author: string; videoId: string; duration: string; selected: boolean };
 
 export type PlayerState = {
   player: {
@@ -100,7 +100,7 @@ export type Companion = { id: string; appId: string; appName: string; appVersion
 export type PlayerCommand =
   | "playPause" | "next" | "previous" | "toggleLike" | "toggleDislike" | "shuffle"
   | "volumeUp" | "volumeDown" | "mute" | "unmute" | "setVolume" | "seekTo" | "repeatMode"
-  | "togglePlayerPage" | "addToPlaylist" | "closeTrack";
+  | "togglePlayerPage" | "addToPlaylist" | "closeTrack" | "playQueueIndex";
 
 export const api = {
   getSettings: () => invoke<Settings>("get_settings"),

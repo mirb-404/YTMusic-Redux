@@ -179,7 +179,7 @@
   {#if native}
     <!-- Kept mounted under the lyrics view, so pages keep their place. -->
     <div class="native">
-      <Browser controls={windowControls} {drag} {session} />
+      <Browser controls={windowControls} {drag} {session} {player} />
       {#if nowPlayingOpen}
         <div class="layer overlay" in:fly={{ y: 28, duration: 260, easing: cubicOut }} out:fade={{ duration: 140 }}>
           <NowPlaying
@@ -251,7 +251,7 @@
   {/if}
 
   {#if modernUi}
-    <PlayerBar {player} {memory} {clock} {showVideos} {fullscreen} tinted={tintedBar} />
+    <PlayerBar {player} {memory} {clock} {showVideos} {fullscreen} tinted={tintedBar} {native} />
   {/if}
 
   {#if tourOpen}

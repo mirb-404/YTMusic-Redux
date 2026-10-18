@@ -68,7 +68,7 @@ pub async fn keyboard_action(app: AppHandle, webview: Webview, action: String) -
     let state = ctx.player.get();
     let browse = |id: &str| ytm::call(&app, "exec", &[json!("navigate"), json!({ "browseEndpoint": { "browseId": id } })]);
     // With native browsing the app's own pages handle navigation and search.
-    if windows::native_browse(&app) && matches!(action.as_str(), "search" | "home" | "explore" | "library" | "back" | "forward") {
+    if windows::native_browse(&app) && matches!(action.as_str(), "search" | "home" | "explore" | "library" | "back" | "forward" | "queue") {
         use tauri::Emitter;
         windows::set_now_playing_open(&app, false);
         if ctx.memory.read(|m| m.ytm_player_page) {

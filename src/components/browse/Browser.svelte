@@ -2,14 +2,19 @@
   import { listen } from "@tauri-apps/api/event";
   import { onMount, tick, type Snippet } from "svelte";
   import Icon from "../Icon.svelte";
+  import ContextMenu from "./ContextMenu.svelte";
   import PageView from "./PageView.svelte";
+  import PlaylistDialog from "./PlaylistDialog.svelte";
+  import QueuePanel from "./QueuePanel.svelte";
+  import Toast from "./Toast.svelte";
+  import type { PlayerState } from "../../lib/api";
   import SearchBox from "./SearchBox.svelte";
   import Sidebar from "./Sidebar.svelte";
-  import { EXPLORE, HOME, LIBRARY, router } from "../../lib/music.svelte";
+  import { EXPLORE, HOME, LIBRARY, router, ui } from "../../lib/music.svelte";
 
   // The app's own YouTube Music pages: top bar with history and search, sidebar, and the
   // page, drawn from YTM's API instead of YTM's website.
-  let { controls, drag, session }: { controls: Snippet; drag?: boolean; session: number } = $props();
+  let { controls, drag, session, player }: { controls: Snippet; drag?: boolean; session: number; player: PlayerState | null } = $props();
 
   let scroller = $state<HTMLElement>();
   let search = $state<ReturnType<typeof SearchBox>>();
@@ -30,6 +35,7 @@
       else if (action === "library") router.go({ kind: "browse", endpoint: LIBRARY });
       else if (action === "back") router.back();
       else if (action === "forward") router.forward();
+      else if (action === "queue") ui.queueOpen = !ui.queueOpen;
     });
     // Mouse back and forward buttons.
     const onMouse = (e: MouseEvent) => {
@@ -104,6 +110,11 @@
     {/if}
   </main>
 </div>
+
+<QueuePanel {player} />
+<Toast />
+<ContextMenu />
+<PlaylistDialog onchange={() => ui.playlists++} />
 
 <style>
   .topbar {

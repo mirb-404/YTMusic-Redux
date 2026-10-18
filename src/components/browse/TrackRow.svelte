@@ -1,7 +1,7 @@
 <script lang="ts">
   import Icon from "../Icon.svelte";
   import Runs from "./Runs.svelte";
-  import { art, nowPlaying, router, type Item } from "../../lib/music.svelte";
+  import { art, nowPlaying, openMenu, rate, router, type Item } from "../../lib/music.svelte";
 
   // A song, video or result row. Albums show their track numbers instead of artwork.
   let { item, numbered = false }: { item: Item; numbered?: boolean } = $props();
@@ -17,6 +17,7 @@
   tabindex="0"
   onclick={() => router.open(item.endpoint)}
   onkeydown={(e) => e.key === "Enter" && router.open(item.endpoint)}
+  oncontextmenu={(e) => openMenu(e, item.menu, item)}
 >
   <div class="lead" class:numbered>
     {#if numbered}
@@ -34,7 +35,23 @@
     <div class="title" title={item.title}>{item.title}</div>
     {#if item.subtitle.length}<div class="sub"><Runs runs={item.subtitle} /></div>{/if}
   </div>
-  {#if item.duration}<span class="duration">{item.duration}</span>{/if}
+  <div class="tail">
+    {#if item.like}
+      <button
+        class="icon"
+        class:liked={item.like.status === "LIKE"}
+        title={item.like.status === "LIKE" ? "Remove from Liked music" : "Like"}
+        onclick={(e) => {
+          e.stopPropagation();
+          rate(item.like!, item.like!.status === "LIKE" ? "INDIFFERENT" : "LIKE");
+        }}><Icon name={item.like.status === "LIKE" ? "like" : "likeOutline"} size={18} /></button
+      >
+    {/if}
+    {#if item.duration}<span class="duration">{item.duration}</span>{/if}
+    {#if item.menu.length}
+      <button class="icon more" title="More" onclick={(e) => openMenu(e, item.menu, item)}><Icon name="more" size={20} /></button>
+    {/if}
+  </div>
 </div>
 
 <style>
@@ -69,5 +86,10 @@
   .title { font-weight: 600; font-size: 14px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
   .current .title { color: var(--accent); }
   .sub { font-size: 13px; color: var(--text-muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; margin-top: 2px; }
-  .duration { font-size: 13px; color: var(--text-muted); font-variant-numeric: tabular-nums; }
+  .duration { font-size: 13px; color: var(--text-muted); font-variant-numeric: tabular-nums; min-width: 38px; text-align: right; }
+  .tail { display: flex; align-items: center; gap: 6px; }
+  .icon { width: 32px; height: 32px; border-radius: 50%; display: grid; place-items: center; color: var(--text-muted); opacity: 0; transition: opacity 0.15s, background 0.15s; }
+  .row:hover .icon, .row:focus-within .icon, .icon.liked { opacity: 1; }
+  .icon:hover { background: var(--surface-active); color: var(--text); }
+  .icon.liked { color: var(--accent); }
 </style>

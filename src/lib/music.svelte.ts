@@ -10,6 +10,20 @@ export type Endpoint = {
   searchEndpoint?: { query: string; params?: string };
 };
 export type Run = { text: string; endpoint: Endpoint | null };
+export type MenuAction =
+  | { type: "open"; endpoint: Endpoint }
+  | { type: "queue"; next: boolean; videoId: string | null; playlistId: string | null }
+  | { type: "service"; endpoint: Record<string, unknown> }
+  | { type: "addToPlaylist"; videoId: string | null; playlistId: string | null }
+  | { type: "share" };
+export type MenuEntry = {
+  text: string;
+  icon: string;
+  action: MenuAction;
+  toggle: { toggled: boolean; text: string; icon: string; action: MenuAction } | null;
+};
+export type Like = { videoId: string; status: "LIKE" | "DISLIKE" | "INDIFFERENT" };
+export type PlaylistTarget = { playlistId: string; title: string; contains: boolean };
 export type ItemKind = "song" | "video" | "album" | "playlist" | "artist" | "episode" | "podcast" | "category" | "other";
 export type Item = {
   kind: ItemKind;
@@ -23,6 +37,8 @@ export type Item = {
   index: string | null;
   aspect: "square" | "wide" | "circle";
   color: string | null;
+  menu: MenuEntry[];
+  like: Like | null;
 };
 export type Continuation = { token: string; query: boolean };
 export type Section = {
@@ -45,6 +61,8 @@ export type Header = {
   play: Endpoint | null;
   shuffle: Endpoint | null;
   radio: Endpoint | null;
+  save: MenuEntry | null;
+  menu: MenuEntry[];
 };
 export type Chip = { text: string; endpoint: Endpoint | null; selected: boolean };
 export type Page = { header: Header | null; chips: Chip[]; sections: Section[]; continuation: Continuation | null };
@@ -59,7 +77,17 @@ export const music = {
   guide: () => invoke<GuideEntry[]>("music_guide"),
   signedIn: () => invoke<boolean>("music_signed_in"),
   play: (endpoint: Endpoint) => invoke<void>("music_play", { endpoint }),
-  signIn: () => invoke<void>("music_sign_in")
+  signIn: () => invoke<void>("music_sign_in"),
+  service: (endpoint: Record<string, unknown>) => invoke<void>("music_service", { endpoint }),
+  rate: (videoId: string, status: Like["status"]) => invoke<void>("music_rate", { videoId, status }),
+  queue: (next: boolean, videoId: string | null, playlistId: string | null) => invoke<void>("music_queue", { next, videoId, playlistId }),
+  queueRemove: (index: number) => invoke<void>("music_queue_remove", { index }),
+  queueMove: (from: number, to: number) => invoke<void>("music_queue_move", { from, to }),
+  playlistTargets: (videoId: string | null, playlistId: string | null) => invoke<PlaylistTarget[]>("music_playlist_targets", { videoId, playlistId }),
+  addToPlaylist: (playlistId: string, videoId: string | null, sourcePlaylistId: string | null) =>
+    invoke<void>("music_add_to_playlist", { playlistId, videoId, sourcePlaylistId }),
+  createPlaylist: (title: string, description: string, privacy: string, videoId: string | null, sourcePlaylistId: string | null) =>
+    invoke<string>("music_create_playlist", { title, description, privacy, videoId, sourcePlaylistId })
 };
 
 /** The playing track, kept by the shell, so rows and cards can mark it. */
@@ -211,3 +239,96 @@ class Router {
 }
 
 export const router = new Router();
+
+// --- menus, dialogs and notices shared by the pages
+
+export type SaveTarget = { videoId: string | null; playlistId: string | null; title: string };
+
+export const ui = $state({
+  menu: null as { x: number; y: number; entries: MenuEntry[]; item: Item | null; title: string } | null,
+  /** The add-to-playlist dialog, or creating a playlist (`create` without a target). */
+  dialog: null as { target: SaveTarget | null; create: boolean } | null,
+  toast: null as { text: string; id: number } | null,
+  queueOpen: false,
+  /** Bumped when the user's playlists change, so the sidebar reloads them. */
+  playlists: 0
+});
+
+let toastTimer: ReturnType<typeof setTimeout> | undefined;
+export function toast(text: string) {
+  clearTimeout(toastTimer);
+  ui.toast = { text, id: Date.now() };
+  toastTimer = setTimeout(() => (ui.toast = null), 2800);
+}
+
+export function openMenu(e: MouseEvent, entries: MenuEntry[], item: Item | null, title = item?.title ?? "") {
+  e.preventDefault();
+  e.stopPropagation();
+  if (!entries.length && !item?.like) return;
+  ui.menu = { x: e.clientX, y: e.clientY, entries, item, title };
+}
+
+/** The page on music.youtube.com for an item, for sharing. */
+export function shareUrl(item: Item | null, entries: MenuEntry[]): string | null {
+  if (item?.videoId) return `https://music.youtube.com/watch?v=${item.videoId}`;
+  const queue = entries.find((e) => e.action.type === "queue")?.action;
+  if (queue?.type === "queue" && queue.playlistId) return `https://music.youtube.com/playlist?list=${queue.playlistId}`;
+  const browse = item?.endpoint?.browseEndpoint;
+  if (browse?.pageType === "MUSIC_PAGE_TYPE_ARTIST") return `https://music.youtube.com/channel/${browse.browseId}`;
+  if (browse) return `https://music.youtube.com/browse/${browse.browseId}`;
+  return null;
+}
+
+/** Runs a menu entry; on/off entries flip in place once YTM accepted them. */
+export async function runEntry(entry: MenuEntry, item: Item | null, title: string, entries: MenuEntry[]) {
+  const a = entry.action;
+  try {
+    if (a.type === "open") router.open(a.endpoint);
+    else if (a.type === "queue") {
+      await music.queue(a.next, a.videoId, a.playlistId);
+      toast(a.next ? "Playing next" : "Added to queue");
+    } else if (a.type === "addToPlaylist") ui.dialog = { target: { videoId: a.videoId, playlistId: a.playlistId, title }, create: false };
+    else if (a.type === "share") {
+      const url = shareUrl(item, entries);
+      if (url) {
+        await navigator.clipboard.writeText(url);
+        toast("Link copied");
+      }
+    } else if (a.type === "service") {
+      await music.service(a.endpoint);
+      const notices: Record<string, string> = {
+        BOOKMARK_BORDER: "Saved to library",
+        LIBRARY_ADD: "Saved to library",
+        BOOKMARK: "Removed from library",
+        LIBRARY_REMOVE: "Removed from library",
+        KEEP: "Pinned to Listen again",
+        KEEP_OFF: "Unpinned"
+      };
+      const edit = "playlistEditEndpoint" in a.endpoint;
+      toast(notices[entry.icon] ?? (edit ? "Removed from playlist" : "Done"));
+      if (entry.toggle) {
+        const t = entry.toggle;
+        Object.assign(entry, { text: t.text, icon: t.icon, action: t.action, toggle: { toggled: !t.toggled, text: entry.text, icon: entry.icon, action: a } });
+      }
+      // A track removed from the playlist on screen leaves its list.
+      if (edit && item) {
+        for (const section of router.current?.page?.sections ?? []) {
+          const i = section.items.indexOf(item);
+          if (i >= 0) section.items.splice(i, 1);
+        }
+      }
+    }
+  } catch (e) {
+    toast(String(e));
+  }
+}
+
+export async function rate(like: Like, status: Like["status"]) {
+  try {
+    await music.rate(like.videoId, status);
+    like.status = status;
+    toast(status === "LIKE" ? "Saved to Liked music" : status === "DISLIKE" ? "Disliked" : "Removed from Liked music");
+  } catch (e) {
+    toast(String(e));
+  }
+}

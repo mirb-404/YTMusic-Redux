@@ -60,6 +60,14 @@ permissions = [
   "allow-music-signed-in",
   "allow-music-play",
   "allow-music-sign-in",
+  "allow-music-service",
+  "allow-music-rate",
+  "allow-music-queue",
+  "allow-music-playlist-targets",
+  "allow-music-add-to-playlist",
+  "allow-music-create-playlist",
+  "allow-music-queue-remove",
+  "allow-music-queue-move",
   "allow-keyboard-bindings",
   "allow-keyboard-action"
 ]

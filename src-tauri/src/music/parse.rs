@@ -30,6 +30,9 @@ pub struct Header {
     pub play: Option<Value>,
     pub shuffle: Option<Value>,
     pub radio: Option<Value>,
+    /// Save to (or remove from) the library.
+    pub save: Option<MenuEntry>,
+    pub menu: Vec<MenuEntry>,
 }
 
 #[derive(Debug, Clone, Copy, Default, PartialEq, Serialize)]
@@ -101,6 +104,49 @@ pub struct Item {
     pub aspect: Aspect,
     /// Mood and genre buttons carry a color stripe.
     pub color: Option<String>,
+    pub menu: Vec<MenuEntry>,
+    pub like: Option<Like>,
+}
+
+/// One entry of an item's "more" menu, as YTM offers it for that item.
+#[derive(Debug, Clone, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct MenuEntry {
+    pub text: String,
+    pub icon: String,
+    pub action: MenuAction,
+    /// On/off entries (save to library, pin): the other state's text and action.
+    pub toggle: Option<Toggle>,
+}
+
+#[derive(Debug, Clone, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct Toggle {
+    pub toggled: bool,
+    pub text: String,
+    pub icon: String,
+    pub action: MenuAction,
+}
+
+#[derive(Debug, Clone, Serialize)]
+#[serde(tag = "type", rename_all = "camelCase", rename_all_fields = "camelCase")]
+pub enum MenuAction {
+    /// Opens a page or plays (radio, shuffle, go to artist or album).
+    Open { endpoint: Value },
+    /// Play next, or add to the end of the queue.
+    Queue { next: bool, video_id: Option<String>, playlist_id: Option<String> },
+    /// A request YTM sends as is: like, library feedback, playlist edits.
+    Service { endpoint: Value },
+    AddToPlaylist { video_id: Option<String>, playlist_id: Option<String> },
+    Share,
+}
+
+#[derive(Debug, Clone, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct Like {
+    pub video_id: String,
+    /// "LIKE", "DISLIKE" or "INDIFFERENT".
+    pub status: String,
 }
 
 #[derive(Debug, Clone, Copy, Default, PartialEq, Serialize)]
@@ -291,12 +337,100 @@ fn aspect(kind: ItemKind, ratio: Option<&str>) -> Aspect {
     }
 }
 
+// --- menus
+
+fn keep(v: &Value, fields: &[&str]) -> Value {
+    let mut out = Map::new();
+    for f in fields {
+        if let Some(x) = v.get(*f) {
+            out.insert((*f).into(), x.clone());
+        }
+    }
+    Value::Object(out)
+}
+
+/// Requests a menu entry sends unchanged, trimmed to what they need.
+pub fn service(v: Option<&Value>) -> Option<Value> {
+    let v = v?;
+    if let Some(l) = v.get("likeEndpoint") {
+        l.get("status")?;
+        return Some(json!({ "likeEndpoint": keep(l, &["status", "target"]) }));
+    }
+    if let Some(f) = v.get("feedbackEndpoint") {
+        return Some(json!({ "feedbackEndpoint": { "feedbackToken": f.get("feedbackToken")? } }));
+    }
+    if let Some(p) = v.get("playlistEditEndpoint") {
+        let actions: Vec<Value> =
+            arr(p.get("actions")).iter().map(|a| keep(a, &["action", "setVideoId", "removedVideoId", "addedVideoId", "movedSetVideoIdSuccessor"])).collect();
+        return Some(json!({ "playlistEditEndpoint": { "playlistId": p.get("playlistId")?, "actions": actions } }));
+    }
+    None
+}
+
+fn menu_action(v: Option<&Value>) -> Option<MenuAction> {
+    let v = v?;
+    let ids = |t: &Value| (str_at(t, &["videoId"]), str_at(t, &["playlistId"]));
+    if let Some(q) = v.get("queueAddEndpoint") {
+        let (video_id, playlist_id) = ids(q.get("queueTarget")?);
+        let next = str_at(q, &["queueInsertPosition"]).as_deref() == Some("INSERT_AFTER_CURRENT_VIDEO");
+        return Some(MenuAction::Queue { next, video_id, playlist_id });
+    }
+    if let Some(a) = v.get("addToPlaylistEndpoint") {
+        let (video_id, playlist_id) = ids(a);
+        return Some(MenuAction::AddToPlaylist { video_id, playlist_id });
+    }
+    if let Some(endpoint) = service(Some(v)) {
+        return Some(MenuAction::Service { endpoint });
+    }
+    endpoint(Some(v)).map(|endpoint| MenuAction::Open { endpoint })
+}
+
+fn icon(v: Option<&Value>) -> String {
+    v.and_then(|i| i.get("iconType")).and_then(Value::as_str).unwrap_or_default().to_string()
+}
+
+/// An on/off entry: the entry is what selecting it does now, the toggle the state after.
+fn toggle_entry(toggled: bool, off: (String, String, MenuAction), on: (String, String, MenuAction)) -> MenuEntry {
+    let (now, after) = if toggled { (on, off) } else { (off, on) };
+    MenuEntry { text: now.0, icon: now.1, action: now.2, toggle: Some(Toggle { toggled, text: after.0, icon: after.1, action: after.2 }) }
+}
+
+fn menu_entry(v: &Value) -> Option<MenuEntry> {
+    let (key, e) = renderer(v)?;
+    match key {
+        "menuNavigationItemRenderer" | "menuServiceItemRenderer" => {
+            let icon = icon(e.get("icon"));
+            let action = menu_action(e.get("navigationEndpoint").or_else(|| e.get("serviceEndpoint"))).or_else(|| (icon == "SHARE").then_some(MenuAction::Share))?;
+            Some(MenuEntry { text: text(e.get("text")), icon, action, toggle: None })
+        }
+        "toggleMenuServiceItemRenderer" => {
+            let toggled = e.get("isToggled").and_then(Value::as_bool).unwrap_or(false);
+            let off = (text(e.get("defaultText")), icon(e.get("defaultIcon")), menu_action(e.get("defaultServiceEndpoint"))?);
+            let on = (text(e.get("toggledText")), icon(e.get("toggledIcon")), menu_action(e.get("toggledServiceEndpoint"))?);
+            Some(toggle_entry(toggled, off, on))
+        }
+        _ => None,
+    }
+}
+
+fn menu(v: &Value) -> (Vec<MenuEntry>, Option<Like>) {
+    let Some(m) = get(v, &["menu", "menuRenderer"]) else { return (Vec::new(), None) };
+    let entries = arr(m.get("items")).iter().filter_map(menu_entry).collect();
+    let like = arr(m.get("topLevelButtons")).iter().find_map(|b| b.get("likeButtonRenderer")).and_then(|l| {
+        Some(Like { video_id: str_at(l, &["target", "videoId"])?, status: str_at(l, &["likeStatus"]).unwrap_or_else(|| "INDIFFERENT".into()) })
+    });
+    (entries, like)
+}
+
 // --- items
 
 fn two_row_item(v: &Value) -> Item {
     let endpoint = endpoint(v.get("navigationEndpoint"));
     let kind = kind_of(&endpoint);
+    let (menu, like) = menu(v);
     Item {
+        menu,
+        like,
         kind,
         title: text(v.get("title")),
         subtitle: runs(v.get("subtitle")),
@@ -336,7 +470,10 @@ fn list_item(v: &Value) -> Item {
     let index = Some(text(get(v, &["index"]))).filter(|t| !t.is_empty()).or_else(|| {
         Some(text(get(v, &["customIndexColumn", "musicCustomIndexColumnRenderer", "text"]))).filter(|t| !t.is_empty())
     });
+    let (menu, like) = menu(v);
     Item {
+        menu,
+        like,
         kind,
         title: title_runs.into_iter().map(|r| r.text).collect(),
         subtitle,
@@ -453,6 +590,7 @@ fn section(v: &Value) -> Option<Section> {
                 play: arr(s.get("buttons")).iter().find_map(|b| self::endpoint(get(b, &["buttonRenderer", "command"]))),
                 aspect: aspect(kind, None),
                 endpoint,
+                menu: menu(s).0,
                 ..Default::default()
             };
             let mut list = vec![top];
@@ -536,6 +674,13 @@ fn responsive_header(h: &Value) -> Header {
         play: buttons.iter().find_map(|b| endpoint(get(b, &["musicPlayButtonRenderer", "playNavigationEndpoint"]))),
         shuffle: menu_endpoint("MUSIC_SHUFFLE"),
         radio: menu_endpoint("MIX"),
+        save: buttons.iter().find_map(|b| b.get("toggleButtonRenderer")).and_then(|t| {
+            let toggled = t.get("isToggled").and_then(Value::as_bool).unwrap_or(false);
+            let add = ("Save to library".to_string(), "BOOKMARK_BORDER".to_string(), menu_action(t.get("defaultServiceEndpoint"))?);
+            let remove = ("Remove from library".to_string(), "BOOKMARK".to_string(), menu_action(t.get("toggledServiceEndpoint"))?);
+            Some(toggle_entry(toggled, add, remove))
+        }),
+        menu: menu.iter().filter_map(menu_entry).collect(),
     }
 }
 
@@ -665,6 +810,32 @@ pub fn guide(response: &Value) -> Vec<GuideEntry> {
         .collect()
 }
 
+#[derive(Debug, Clone, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct PlaylistTarget {
+    pub playlist_id: String,
+    pub title: String,
+    /// The track (or every track of the list) is already in this playlist.
+    pub contains: bool,
+}
+
+/// The user's playlists a track or list can be saved to.
+pub fn playlist_targets(response: &Value) -> Vec<PlaylistTarget> {
+    arr(response.get("contents"))
+        .iter()
+        .filter_map(|c| c.get("addToPlaylistRenderer"))
+        .flat_map(|r| arr(r.get("playlists")))
+        .filter_map(|p| p.get("playlistAddToOptionRenderer"))
+        .filter_map(|p| {
+            Some(PlaylistTarget {
+                playlist_id: str_at(p, &["playlistId"])?,
+                title: text(p.get("title")),
+                contains: str_at(p, &["containsSelectedVideos"]).as_deref() == Some("ALL"),
+            })
+        })
+        .collect()
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -747,6 +918,23 @@ mod tests {
         let s = suggestions(&fixture("suggest"));
         assert!(!s.queries.is_empty());
         assert!(!s.items.is_empty());
+    }
+
+    #[test]
+    fn item_menus() {
+        let p = page(&fixture("album"));
+        let track = &p.sections[0].items[0];
+        assert!(track.menu.iter().any(|m| matches!(m.action, MenuAction::Queue { next: true, .. })));
+        assert!(track.menu.iter().any(|m| matches!(m.action, MenuAction::Queue { next: false, .. })));
+        assert!(track.menu.iter().any(|m| matches!(m.action, MenuAction::AddToPlaylist { video_id: Some(_), .. })));
+        assert!(track.menu.iter().any(|m| matches!(m.action, MenuAction::Share)));
+        let library = track.menu.iter().find(|m| m.icon == "BOOKMARK_BORDER").expect("save to library");
+        assert!(matches!(&library.action, MenuAction::Service { endpoint } if endpoint.get("feedbackEndpoint").is_some()));
+        assert!(library.toggle.is_some());
+        assert_eq!(track.like.as_ref().unwrap().video_id, track.video_id.clone().unwrap());
+        let h = p.header.unwrap();
+        assert!(h.save.is_some());
+        assert!(h.menu.iter().any(|m| matches!(m.action, MenuAction::Queue { playlist_id: Some(_), .. })));
     }
 
     #[test]

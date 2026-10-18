@@ -6,6 +6,7 @@
   import WaveSlider from "./WaveSlider.svelte";
   import { api, bestThumbnail, formatTime, type Memory, type PlayerState } from "../lib/api";
   import type { ProgressClock } from "../lib/progress.svelte";
+  import { ui } from "../lib/music.svelte";
 
   let {
     player,
@@ -13,8 +14,18 @@
     clock,
     showVideos,
     fullscreen,
-    tinted
-  }: { player: PlayerState | null; memory: Memory | null; clock: ProgressClock; showVideos: boolean; fullscreen: boolean; tinted: boolean } = $props();
+    tinted,
+    native = false
+  }: {
+    player: PlayerState | null;
+    memory: Memory | null;
+    clock: ProgressClock;
+    showVideos: boolean;
+    fullscreen: boolean;
+    tinted: boolean;
+    /** The app's own pages are shown: the queue opens beside them. */
+    native?: boolean;
+  } = $props();
 
   const video = $derived(player?.video ?? null);
   const playing = $derived(player?.player.trackState === 1);
@@ -158,7 +169,13 @@
     >
       <Icon name={showVideos ? "video" : "videoOff"} size={20} />
     </button>
-    <button class="icon-btn" title="Queue" disabled={!video} onclick={() => api.command("togglePlayerPage")}><Icon name="queue" size={20} /></button>
+    <button
+      class="icon-btn"
+      class:active={native && ui.queueOpen}
+      title="Queue (Q)"
+      disabled={!video}
+      onclick={() => (native ? (ui.queueOpen = !ui.queueOpen) : api.command("togglePlayerPage"))}><Icon name="queue" size={20} /></button
+    >
     <div class="volume" data-tour="volume" onwheel={wheelVolume}>
       <button class="icon-btn" title={muted ? "Unmute" : "Mute"} onclick={() => api.command(muted ? "unmute" : "mute")}>
         <Icon name={muted || volume === 0 ? "muted" : volume < 50 ? "volumeLow" : "volume"} size={20} />

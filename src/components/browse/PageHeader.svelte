@@ -1,7 +1,7 @@
 <script lang="ts">
   import Icon from "../Icon.svelte";
   import Runs from "./Runs.svelte";
-  import { art, music, type Header } from "../../lib/music.svelte";
+  import { art, music, openMenu, runEntry, type Header } from "../../lib/music.svelte";
 
   let { header }: { header: Header } = $props();
 
@@ -35,6 +35,14 @@
           {#if header.play}<button class="primary" onclick={() => music.play(header.play!)}><Icon name="play" size={20} />Play</button>{/if}
           {#if header.shuffle}<button class={header.play ? "secondary" : "primary"} onclick={() => music.play(header.shuffle!)}><Icon name="shuffle" size={18} />Shuffle</button>{/if}
           {#if header.radio}<button class="secondary" onclick={() => music.play(header.radio!)}><Icon name="radio" size={18} />Radio</button>{/if}
+          {#if header.save}
+            <button class="round" title={header.save.text} onclick={() => runEntry(header.save!, null, header.title, header.menu)}>
+              <Icon name={header.save.icon === "BOOKMARK" ? "bookmark" : "bookmarkBorder"} size={20} />
+            </button>
+          {/if}
+          {#if header.menu.length}
+            <button class="round" title="More" onclick={(e) => openMenu(e, header.menu, null, header.title)}><Icon name="more" size={20} /></button>
+          {/if}
         </div>
       </div>
     </div>
@@ -84,4 +92,6 @@
   .primary { background: #fff; color: #000; }
   .secondary { background: rgba(255, 255, 255, 0.1); color: var(--text); border: 1px solid var(--border); }
   .secondary:hover { background: rgba(255, 255, 255, 0.16); }
+  .actions .round { width: 42px; padding: 0; justify-content: center; background: rgba(255, 255, 255, 0.1); border: 1px solid var(--border); }
+  .actions .round:hover { background: rgba(255, 255, 255, 0.16); }
 </style>

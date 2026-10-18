@@ -52,6 +52,14 @@ const UI_COMMANDS: &[&str] = &[
     "music_signed_in",
     "music_play",
     "music_sign_in",
+    "music_service",
+    "music_rate",
+    "music_queue",
+    "music_playlist_targets",
+    "music_add_to_playlist",
+    "music_create_playlist",
+    "music_queue_remove",
+    "music_queue_move",
 ];
 
 const AUTH_COMMANDS: &[&str] = &["companion_auth_info", "companion_auth_result"];
