@@ -41,7 +41,6 @@ permissions = [
   "allow-ytm-history",
   "allow-open-ytm-devtools",
   "allow-restart-app",
-  "allow-quit-app",
   "allow-companion-list",
   "allow-companion-revoke",
   "allow-companion-set-auth-enabled",

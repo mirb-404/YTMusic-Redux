@@ -35,7 +35,6 @@ const UI_COMMANDS: &[&str] = &[
     "ytm_history",
     "open_ytm_devtools",
     "restart_app",
-    "quit_app",
     "companion_list",
     "companion_revoke",
     "companion_set_auth_enabled",

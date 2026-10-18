@@ -169,11 +169,6 @@ pub fn restart_app(app: AppHandle) {
 }
 
 #[tauri::command]
-pub fn quit_app(app: AppHandle) {
-    crate::quit(&app);
-}
-
-#[tauri::command]
 pub fn companion_list(app: AppHandle) -> Vec<companion::AuthorizedCompanion> {
     companion::authorized_companions(&app)
 }

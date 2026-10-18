@@ -117,7 +117,6 @@ export const api = {
   ytmHistory: (forward: boolean) => invoke<void>("ytm_history", { forward }),
   openYtmDevtools: () => invoke<void>("open_ytm_devtools"),
   restartApp: () => invoke<void>("restart_app"),
-  quitApp: () => invoke<void>("quit_app"),
   companionList: () => invoke<Companion[]>("companion_list"),
   companionRevoke: (id: string) => invoke<void>("companion_revoke", { id }),
   companionSetAuthEnabled: (enabled: boolean) => invoke<void>("companion_set_auth_enabled", { enabled }),

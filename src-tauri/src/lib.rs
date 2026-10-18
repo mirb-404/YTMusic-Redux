@@ -220,7 +220,6 @@ pub fn run() {
             commands::ytm_history,
             commands::open_ytm_devtools,
             commands::restart_app,
-            commands::quit_app,
             commands::companion_list,
             commands::companion_revoke,
             commands::companion_set_auth_enabled,
