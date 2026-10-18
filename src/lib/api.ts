@@ -39,6 +39,7 @@ export type Settings = {
     modernUi: boolean;
     tintedPlayerBar: boolean;
     nativeBrowse: boolean;
+    videoMiniPlayer: boolean;
     alwaysShowVolumeSlider: boolean;
     customCssEnabled: boolean;
     customCssPath: string | null;
@@ -91,6 +92,7 @@ export type Memory = {
   tourOpen: boolean;
   ytmPlayerPage: boolean;
   ytmForeignPage: boolean;
+  videoView: "closed" | "open" | "mini";
 };
 
 export type LyricLine = { time: number; text: string };

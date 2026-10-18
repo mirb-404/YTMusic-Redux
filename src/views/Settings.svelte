@@ -184,6 +184,11 @@
                   <Row title="Native pages" description="The app draws YouTube Music's pages itself, for instant navigation; off shows YouTube Music's own website" nested>
                     <Toggle label="Native pages" checked={s.appearance.nativeBrowse} onchange={(v) => set("appearance.nativeBrowse", v)} />
                   </Row>
+                  {#if s.appearance.nativeBrowse}
+                    <Row title="Mini player" description="Leaving the video view shrinks it into a small video above the player bar instead of closing it" nested>
+                      <Toggle label="Mini player" checked={s.appearance.videoMiniPlayer} onchange={(v) => set("appearance.videoMiniPlayer", v)} />
+                    </Row>
+                  {/if}
                   <Row title="Tinted player bar" description="Colors the player bar from the playing track's artwork; off keeps the plain dark bar" nested>
                     <Toggle label="Tinted player bar" checked={s.appearance.tintedPlayerBar} onchange={(v) => set("appearance.tintedPlayerBar", v)} />
                   </Row>

@@ -5,6 +5,18 @@ use std::collections::BTreeMap;
 use std::sync::Mutex;
 use tauri::{AppHandle, Emitter};
 
+/// Where YTM's player page (the video view) is shown over the app's own pages.
+#[derive(Debug, Clone, Copy, Default, PartialEq, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub enum VideoView {
+    #[default]
+    Closed,
+    /// Fills the area between the top bar and the player bar.
+    Open,
+    /// A small video above the player bar, at the bottom right.
+    Mini,
+}
+
 #[derive(Debug, Clone, Default, Serialize)]
 #[serde(rename_all = "camelCase")]
 pub struct Memory {
@@ -33,6 +45,7 @@ pub struct Memory {
     /// The YTM view shows a page that is not YouTube Music (sign-in, consent), which needs
     /// the user.
     pub ytm_foreign_page: bool,
+    pub video_view: VideoView,
 }
 
 pub struct MemoryStore {

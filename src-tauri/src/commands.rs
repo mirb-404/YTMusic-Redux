@@ -56,6 +56,10 @@ pub fn player_command(app: AppHandle, command: String, data: Option<Value>) -> R
         ytm::close_track(&app);
         return Ok(());
     }
+    if command == "togglePlayerPage" && windows::native_browse(&app) {
+        windows::toggle_video_view(&app);
+        return Ok(());
+    }
     if matches!(command.as_str(), "togglePlayerPage" | "addToPlaylist") {
         ytm::call(&app, &command, &[]);
         return Ok(());

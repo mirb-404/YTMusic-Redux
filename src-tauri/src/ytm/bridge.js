@@ -153,6 +153,21 @@
       html[ytmr-native] #ytmr-window-controls { display: none !important; }
       html[ytmr-native] ytmusic-app { --ytmusic-nav-bar-height: 0px !important; }
       html[ytmr-native] ytmusic-app-layout { --ytmusic-guide-width: 0px !important; }
+      /* Mini player: the view shrinks to a small window, which shows just the video. */
+      html[ytmr-mini] ytmusic-player-page #side-panel, html[ytmr-mini] #ytmr-up-next { visibility: hidden !important; }
+      html[ytmr-mini] ytmusic-player-page ytmusic-player#player {
+        position: fixed !important; inset: 0 !important; width: 100vw !important; height: 100vh !important;
+        max-width: none !important; max-height: none !important; margin: 0 !important; border-radius: 0 !important;
+        z-index: 2000 !important; background: #000; cursor: pointer;
+      }
+      #ytmr-mini-controls { display: none; position: fixed; inset: 0; z-index: 2001; pointer-events: none; background: linear-gradient(to bottom, rgba(0,0,0,0.55), transparent 40%); opacity: 0; transition: opacity 0.2s; }
+      html[ytmr-mini] #ytmr-mini-controls { display: block; }
+      html[ytmr-mini]:hover #ytmr-mini-controls { opacity: 1; }
+      #ytmr-mini-controls button { position: absolute; top: 8px; width: 32px; height: 32px; display: grid; place-items: center; border: 0; border-radius: 50%; background: rgba(0,0,0,0.5); color: #fff; cursor: pointer; pointer-events: auto; backdrop-filter: blur(8px); }
+      #ytmr-mini-controls button:hover { background: rgba(0,0,0,0.85); }
+      #ytmr-mini-controls button svg { fill: currentColor; }
+      #ytmr-mini-controls .expand { left: 8px; }
+      #ytmr-mini-controls .close { right: 8px; }
       /* An open search box is positioned at the start of its container, over the back and
          forward arrows; it keeps its place after them instead (2 x (24px glyph + 20px margin)). */
       .ytmd-history-forward:not(.pivotbar) + ytmusic-search-box[opened] { margin-left: 88px !important; }
@@ -968,7 +983,7 @@
     if (e.key === "Escape" && document.documentElement.hasAttribute("ytmr-native") && !e.defaultPrevented && !document.fullscreenElement) {
       // Esc leaves the video view back to the app's pages.
       if (document.querySelector("ytmusic-player")?.getAttribute("player-ui-state") === "PLAYER_PAGE_OPEN" && !e.target.closest?.("input, textarea, tp-yt-paper-dialog, tp-yt-iron-dropdown")) {
-        exec("togglePlayerPage");
+        invoke("ytm_window_action", { action: document.documentElement.hasAttribute("ytmr-mini") ? "videoExpand" : "videoLeave" });
         return;
       }
     }
@@ -983,6 +998,7 @@
     mini: "M19 11h-8v6h8v-6zm4 8V4.98C23 3.88 22.1 3 21 3H3c-1.1 0-2 .88-2 1.98V19c0 1.1.9 2 2 2h18c1.1 0 2-.9 2-2zm-2 .02H3V4.97h18v14.05z",
     settings: "M19.14 12.94c.04-.3.06-.61.06-.94 0-.32-.02-.64-.07-.94l2.03-1.58a.49.49 0 0 0 .12-.61l-1.92-3.32a.488.488 0 0 0-.59-.22l-2.39.96c-.5-.38-1.03-.7-1.62-.94l-.36-2.54a.484.484 0 0 0-.48-.41h-3.84c-.24 0-.43.17-.47.41l-.36 2.54c-.59.24-1.13.57-1.62.94l-2.39-.96c-.22-.08-.47 0-.59.22L2.74 8.87c-.12.21-.08.47.12.61l2.03 1.58c-.05.3-.09.63-.09.94s.02.64.07.94l-2.03 1.58a.49.49 0 0 0-.12.61l1.92 3.32c.12.22.37.29.59.22l2.39-.96c.5.38 1.03.7 1.62.94l.36 2.54c.05.24.24.41.48.41h3.84c.24 0 .44-.17.47-.41l.36-2.54c.59-.24 1.13-.56 1.62-.94l2.39.96c.22.08.47 0 .59-.22l1.92-3.32c.12-.22.07-.47-.12-.61l-2.01-1.58zM12 15.6c-1.98 0-3.6-1.62-3.6-3.6s1.62-3.6 3.6-3.6 3.6 1.62 3.6 3.6-1.62 3.6-3.6 3.6z",
     skipNext: "M6 18l8.5-6L6 6v12zM16 6v12h2V6h-2z",
+    expandView: "M7 14H5v5h5v-2H7v-3zm-2-4h2V7h3V5H5v5zm12 7h-3v2h5v-5h-2v3zM14 5v2h3v3h2V5h-5z",
     minimize: "M5 11h14v2H5z",
     maximize: "M4 4h16v16H4V4zm2 2v12h12V6H6z",
     restore: "M8 4h12v12h-2V6H8V4zM4 8h12v12H4V8zm2 2v8h8v-8H6z",
@@ -1240,6 +1256,42 @@
       }, 1500);
     },
     setNative: (on) => document.documentElement.toggleAttribute("ytmr-native", on),
+    setMini: (on) => {
+      document.documentElement.toggleAttribute("ytmr-mini", on);
+      if (on && !document.getElementById("ytmr-mini-controls")) {
+        const bar = document.createElement("div");
+        bar.id = "ytmr-mini-controls";
+        const button = (cls, title, icon, action) => {
+          const b = document.createElement("button");
+          b.className = cls;
+          b.title = title;
+          b.appendChild(svgIcon(icon, 18));
+          b.addEventListener("click", (e) => {
+            e.stopPropagation();
+            invoke("ytm_window_action", { action });
+          });
+          return b;
+        };
+        bar.append(button("expand", "Open the player", "expandView", "videoExpand"), button("close", "Close the mini player", "close", "videoClose"));
+        document.body.appendChild(bar);
+        // A click on the video itself opens the player too.
+        document.addEventListener(
+          "click",
+          (e) => {
+            if (document.documentElement.hasAttribute("ytmr-mini") && e.target.closest?.("ytmusic-player") && !e.target.closest("#ytmr-mini-controls")) {
+              e.stopPropagation();
+              e.preventDefault();
+              invoke("ytm_window_action", { action: "videoExpand" });
+            }
+          },
+          true
+        );
+      }
+    },
+    // Puts the player page away once the view has slid out (see windows::set_video_view).
+    closePlayerPage: () => {
+      if (document.querySelector("ytmusic-player")?.getAttribute("player-ui-state") === "PLAYER_PAGE_OPEN") exec("togglePlayerPage");
+    },
     playQuietly: (endpoint) => {
       launchPause = false;
       // Only a player page that was closed is put away again.

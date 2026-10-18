@@ -168,6 +168,18 @@ pub async fn ytm_window_action(webview: Webview, app: AppHandle, action: String)
         "settings" => windows::open_settings(&app, None),
         "mini" => windows::toggle_mini_player(&app),
         "plugins" => crate::plugins_menu::show(&app),
+        "videoExpand" => {
+            windows::set_video_view(&app, crate::memory::VideoView::Open);
+            Ok(())
+        }
+        "videoLeave" => {
+            windows::leave_video_view(&app);
+            Ok(())
+        }
+        "videoClose" => {
+            windows::set_video_view(&app, crate::memory::VideoView::Closed);
+            Ok(())
+        }
         "closeTrack" => {
             super::close_track(&app);
             Ok(())
@@ -181,17 +193,18 @@ pub async fn ytm_window_action(webview: Webview, app: AppHandle, action: String)
 #[tauri::command]
 pub fn ytm_player_page(webview: Webview, app: AppHandle, open: bool) -> Result<()> {
     ensure_ytm(&webview)?;
-    app_ctx(&app).memory.update(&app, |m| m.ytm_player_page = open);
-    if open {
+    let ctx = app_ctx(&app);
+    ctx.memory.update(&app, |m| m.ytm_player_page = open);
+    if !windows::native_browse(&app) {
         windows::layout_main(&app);
-    } else {
-        // YTM slides its player page down into the player bar; the view stays for that.
-        tauri::async_runtime::spawn(async move {
-            tokio::time::sleep(std::time::Duration::from_millis(380)).await;
-            if !app_ctx(&app).memory.read(|m| m.ytm_player_page) {
-                windows::layout_main(&app);
-            }
-        });
+        return Ok(());
+    }
+    let mode = ctx.memory.read(|m| m.video_view);
+    if open && mode == crate::memory::VideoView::Closed {
+        windows::set_video_view(&app, crate::memory::VideoView::Open);
+    } else if !open && mode != crate::memory::VideoView::Closed {
+        // YTM put its player page away itself (closing the track, its own controls).
+        windows::set_video_view(&app, crate::memory::VideoView::Closed);
     }
     Ok(())
 }

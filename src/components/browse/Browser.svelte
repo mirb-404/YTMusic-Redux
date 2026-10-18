@@ -105,7 +105,7 @@
 
 <div class="body">
   <Sidebar {session} />
-  <main class="content" bind:this={scroller}>
+  <main class="content" class:behind={videoOpen} bind:this={scroller}>
     {#if entry}
       {#key router.index}
         <div class="page">
@@ -159,7 +159,13 @@
   .right { display: flex; align-items: center; align-self: stretch; }
 
   .body { flex: 1; min-height: 0; display: flex; }
-  .content { flex: 1; min-width: 0; overflow-y: auto; overflow-x: hidden; scrollbar-gutter: stable; }
+  .content {
+    flex: 1; min-width: 0; overflow-y: auto; overflow-x: hidden; scrollbar-gutter: stable;
+    transform-origin: 50% 30%;
+    transition: transform 0.34s cubic-bezier(0.65, 0, 0.35, 1), opacity 0.34s cubic-bezier(0.65, 0, 0.35, 1);
+  }
+  /* Recedes under the video view and comes forward as it slides away. */
+  .content.behind { transform: scale(0.97); opacity: 0.35; }
   .content::-webkit-scrollbar { width: 12px; }
   .content::-webkit-scrollbar-thumb { background: rgba(255, 255, 255, 0.14); border-radius: 10px; border: 3px solid transparent; background-clip: padding-box; }
   .page { padding: 32px 40px 48px; animation: enter 0.32s var(--ease) both; }

@@ -38,6 +38,8 @@ pub struct Appearance {
     /// The app draws YouTube Music's pages itself (with Modern UI); the YTM page only plays
     /// and shows its player page. Off shows YTM's own pages.
     pub native_browse: bool,
+    /// Leaving the video view shrinks it into a mini player instead of closing it.
+    pub video_mini_player: bool,
     pub always_show_volume_slider: bool,
     pub custom_css_enabled: bool,
     pub custom_css_path: Option<String>,
@@ -51,6 +53,7 @@ impl Default for Appearance {
             modern_ui: true,
             tinted_player_bar: true,
             native_browse: true,
+            video_mini_player: false,
             always_show_volume_slider: false,
             custom_css_enabled: false,
             custom_css_path: None,

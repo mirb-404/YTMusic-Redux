@@ -1,7 +1,7 @@
 //! Window management: main window (title bar shell + YTM view), settings, mini player
 //! and companion authorization windows.
 
-use crate::{app_ctx, state_store::WindowBounds, ytm};
+use crate::{app_ctx, memory::VideoView, state_store::WindowBounds, ytm};
 use std::sync::atomic::{AtomicBool, Ordering};
 use tauri::{
     AppHandle, LogicalPosition, LogicalSize, Manager, PhysicalPosition, PhysicalSize, WebviewBuilder, WebviewUrl,
@@ -154,10 +154,32 @@ pub fn layout_main(app: &AppHandle) {
     let video = VIDEO_FULLSCREEN.load(Ordering::Relaxed);
     let owns_header = ctx.memory.read(|m| m.ytm_owns_header);
     let native = native_browse(app);
+    let (loading, covered, foreign, mode) =
+        ctx.memory.read(|m| (m.ytm_view_loading, (m.now_playing_open || m.tour_open) && !video, m.ytm_foreign_page, m.video_view));
+    if native {
+        // An animation between video view states places the view itself.
+        if ANIMATING.load(Ordering::Relaxed) {
+            return;
+        }
+        let rect = if video {
+            Rect { x: 0.0, y: 0.0, w: size.width, h: (size.height - PLAYER_BAR_HEIGHT).max(1.0) }
+        } else if covered {
+            parked(size)
+        } else if foreign {
+            content(size)
+        } else {
+            match mode {
+                VideoView::Open => content(size),
+                VideoView::Mini => mini(size),
+                VideoView::Closed => parked(size),
+            }
+        };
+        place(&view, rect);
+        let _ = view.show();
+        return;
+    }
     let top = if video {
         0.0
-    } else if native {
-        NATIVE_TOP_BAR_HEIGHT
     } else if owns_header {
         0.0
     } else {
@@ -166,22 +188,133 @@ pub fn layout_main(app: &AppHandle) {
     let bottom = if ctx.settings.get().appearance.modern_ui { PLAYER_BAR_HEIGHT } else { 0.0 };
     let _ = view.set_position(LogicalPosition::new(0.0, top));
     let _ = view.set_size(LogicalSize::new(size.width, (size.height - top - bottom).max(1.0)));
-    let (loading, covered, player_page, foreign) =
-        ctx.memory.read(|m| (m.ytm_view_loading, (m.now_playing_open || m.tour_open) && !video, m.ytm_player_page, m.ytm_foreign_page));
-    // With native browsing the app draws the pages; the YTM page shows only for its player
-    // page, video fullscreen, or a sign-in page.
-    let shown = if native { player_page || foreign || video } else { !loading };
-    if !shown || covered {
-        if native {
-            // Parked just outside the window instead of hidden: YouTube's player loads nothing
-            // in a page that has never been visible, so a hidden page would never start playing.
-            let _ = view.set_position(LogicalPosition::new(size.width + 16.0, top));
-            let _ = view.show();
-        } else {
-            let _ = view.hide();
+    let _ = if loading || covered { view.hide() } else { view.show() };
+}
+
+#[derive(Debug, Clone, Copy, PartialEq)]
+struct Rect {
+    x: f64,
+    y: f64,
+    w: f64,
+    h: f64,
+}
+
+/// Mini player size and margin, in logical pixels.
+const MINI_WIDTH: f64 = 400.0;
+const MINI_MARGIN: f64 = 20.0;
+const ANIMATION_MS: u64 = 340;
+
+fn content(size: LogicalSize<f64>) -> Rect {
+    Rect { x: 0.0, y: NATIVE_TOP_BAR_HEIGHT, w: size.width, h: (size.height - NATIVE_TOP_BAR_HEIGHT - PLAYER_BAR_HEIGHT).max(1.0) }
+}
+
+fn mini(size: LogicalSize<f64>) -> Rect {
+    let h = MINI_WIDTH * 9.0 / 16.0;
+    Rect { x: size.width - MINI_WIDTH - MINI_MARGIN, y: size.height - PLAYER_BAR_HEIGHT - h - MINI_MARGIN, w: MINI_WIDTH, h }
+}
+
+/// Just outside the window instead of hidden: YouTube's player loads nothing in a page
+/// that has never been visible, so a hidden page would never start playing.
+fn parked(size: LogicalSize<f64>) -> Rect {
+    Rect { x: size.width + 16.0, ..content(size) }
+}
+
+/// Where a view slides from when it opens, and to when it closes: straight down, out of
+/// the window.
+fn below(r: Rect, size: LogicalSize<f64>) -> Rect {
+    Rect { y: size.height + 8.0, ..r }
+}
+
+fn place(view: &tauri::Webview, r: Rect) {
+    let _ = view.set_position(LogicalPosition::new(r.x.round(), r.y.round()));
+    let _ = view.set_size(LogicalSize::new(r.w.round().max(1.0), r.h.round().max(1.0)));
+}
+
+static ANIMATING: AtomicBool = AtomicBool::new(false);
+static ANIMATION: std::sync::atomic::AtomicU64 = std::sync::atomic::AtomicU64::new(0);
+
+/// Moves the view between two rectangles, eased, at about 60 frames a second. A newer
+/// animation stops an older one. Returns whether it ran to the end.
+async fn animate(app: &AppHandle, from: Rect, to: Rect) -> bool {
+    let Some(view) = ytm::webview(app) else { return false };
+    let generation = ANIMATION.fetch_add(1, Ordering::SeqCst) + 1;
+    ANIMATING.store(true, Ordering::Relaxed);
+    let _ = view.show();
+    let start = std::time::Instant::now();
+    let total = std::time::Duration::from_millis(ANIMATION_MS);
+    let resize = (from.w - to.w).abs() > 0.5 || (from.h - to.h).abs() > 0.5;
+    loop {
+        if ANIMATION.load(Ordering::SeqCst) != generation {
+            return false;
         }
-    } else {
-        let _ = view.show();
+        let t = (start.elapsed().as_secs_f64() / total.as_secs_f64()).min(1.0);
+        // Ease in and out (cubic): a smooth start and a soft landing.
+        let e = if t < 0.5 { 4.0 * t * t * t } else { 1.0 - (-2.0 * t + 2.0).powi(3) / 2.0 };
+        let lerp = |a: f64, b: f64| a + (b - a) * e;
+        let r = Rect { x: lerp(from.x, to.x), y: lerp(from.y, to.y), w: lerp(from.w, to.w), h: lerp(from.h, to.h) };
+        if resize {
+            place(&view, r);
+        } else {
+            let _ = view.set_position(LogicalPosition::new(r.x.round(), r.y.round()));
+        }
+        if t >= 1.0 {
+            break;
+        }
+        tokio::time::sleep(std::time::Duration::from_millis(16)).await;
+    }
+    ANIMATING.store(false, Ordering::Relaxed);
+    true
+}
+
+fn window_size(app: &AppHandle) -> Option<LogicalSize<f64>> {
+    let window = app.get_window(MAIN)?;
+    Some(window.inner_size().ok()?.to_logical::<f64>(window.scale_factor().ok()?))
+}
+
+/// Opens, shrinks or closes the video view with a transition. Closing puts YTM's player
+/// page away only after the view has slid out, so the page never jumps underneath.
+pub fn set_video_view(app: &AppHandle, to: VideoView) {
+    let ctx = app_ctx(app);
+    let from_mode = ctx.memory.read(|m| m.video_view);
+    if from_mode == to {
+        return;
+    }
+    let Some(size) = window_size(app) else { return };
+    let rect = |mode: VideoView| match mode {
+        VideoView::Open => content(size),
+        VideoView::Mini => mini(size),
+        VideoView::Closed => parked(size),
+    };
+    let from = if from_mode == VideoView::Closed { below(rect(to), size) } else { rect(from_mode) };
+    let target = if to == VideoView::Closed { below(rect(from_mode), size) } else { rect(to) };
+    ctx.memory.update(app, |m| m.video_view = to);
+    // The mini player shows only the video; the full view also its queue and lyrics.
+    ytm::call(app, "setMini", &[serde_json::json!(to == VideoView::Mini)]);
+    let app = app.clone();
+    tauri::async_runtime::spawn(async move {
+        if animate(&app, from, target).await {
+            if to == VideoView::Closed && app_ctx(&app).memory.read(|m| m.video_view) == VideoView::Closed {
+                ytm::call(&app, "closePlayerPage", &[]);
+            }
+            layout_main(&app);
+        }
+    });
+}
+
+/// Leaving the video view: into the mini player when that is turned on, else closed.
+pub fn leave_video_view(app: &AppHandle) {
+    let mini = app_ctx(app).settings.get().appearance.video_mini_player;
+    let to = if mini && app_ctx(app).memory.read(|m| m.video_view) == VideoView::Open { VideoView::Mini } else { VideoView::Closed };
+    set_video_view(app, to);
+}
+
+/// The player page button (artwork, Q): opens the video view, enlarges the mini player, or
+/// leaves the open view.
+pub fn toggle_video_view(app: &AppHandle) {
+    match app_ctx(app).memory.read(|m| m.video_view) {
+        VideoView::Closed => ytm::call(app, "togglePlayerPage", &[]),
+        VideoView::Mini => set_video_view(app, VideoView::Open),
+        VideoView::Open => leave_video_view(app),
     }
 }
 

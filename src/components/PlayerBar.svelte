@@ -168,7 +168,7 @@
       onclick={() => {
         api.setSetting("playback.showVideos", !showVideos);
         // Over the app's own pages the video only shows on YTM's player page.
-        if (native && !showVideos && video && !memory?.ytmPlayerPage) api.command("togglePlayerPage");
+        if (native && !showVideos && video && memory?.videoView === "closed") api.command("togglePlayerPage");
       }}
     >
       <Icon name={showVideos ? "video" : "videoOff"} size={20} />

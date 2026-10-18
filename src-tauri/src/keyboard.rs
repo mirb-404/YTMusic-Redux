@@ -71,8 +71,8 @@ pub async fn keyboard_action(app: AppHandle, webview: Webview, action: String) -
     if windows::native_browse(&app) && matches!(action.as_str(), "search" | "home" | "explore" | "library" | "back" | "forward" | "queue") {
         use tauri::Emitter;
         windows::set_now_playing_open(&app, false);
-        if ctx.memory.read(|m| m.ytm_player_page) {
-            ytm::call(&app, "togglePlayerPage", &[]);
+        if ctx.memory.read(|m| m.video_view) == crate::memory::VideoView::Open {
+            windows::leave_video_view(&app);
             if action == "back" {
                 return Ok(());
             }
