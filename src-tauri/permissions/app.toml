@@ -14,7 +14,9 @@ permissions = [
   "allow-ytm-url-changed",
   "allow-ytm-fullscreen",
   "allow-ytm-toggle-fullscreen",
-  "allow-ytm-window-action"
+  "allow-ytm-window-action",
+  "allow-keyboard-bindings",
+  "allow-keyboard-action"
 ]
 
 [[set]]
@@ -47,7 +49,9 @@ permissions = [
   "allow-lastfm-signed-in",
   "allow-lastfm-sign-out",
   "allow-pick-css-file",
-  "allow-app-info"
+  "allow-app-info",
+  "allow-keyboard-bindings",
+  "allow-keyboard-action"
 ]
 
 [[set]]

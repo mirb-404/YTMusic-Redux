@@ -3,6 +3,8 @@ import { listen } from "@tauri-apps/api/event";
 
 export type Thumbnail = { url: string; width: number; height: number };
 
+export type QueueItem = { thumbnails: Thumbnail[]; title: string; author: string; videoId: string };
+
 export type PlayerState = {
   player: {
     trackState: -1 | 0 | 1 | 2;
@@ -10,7 +12,7 @@ export type PlayerState = {
     volume: number;
     muted: boolean;
     adPlaying: boolean;
-    queue: { repeatMode: number; items: unknown[] } | null;
+    queue: { repeatMode: number; items: QueueItem[]; automixItems: QueueItem[]; selectedItemIndex: number } | null;
   };
   video: {
     author: string;

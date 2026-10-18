@@ -2,6 +2,7 @@
 
 mod commands;
 mod integrations;
+mod keyboard;
 mod lyrics;
 mod memory;
 mod plugins_menu;
@@ -229,6 +230,8 @@ pub fn run() {
             commands::lastfm_sign_out,
             commands::pick_css_file,
             commands::app_info,
+            keyboard::keyboard_bindings,
+            keyboard::keyboard_action,
         ])
         .build(tauri::generate_context!())
         .expect("error while building tauri application")

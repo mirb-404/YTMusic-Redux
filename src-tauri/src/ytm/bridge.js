@@ -127,11 +127,55 @@
       .ytmd-player-bar-control.library-button, .ytmd-player-bar-control.playlist-button { margin-left: 8px; }
       .ytmd-player-bar-control.library-button.hidden, .ytmd-player-bar-control.playlist-button.hidden { display: none; }
       .ytmd-player-bar-control.sleep-timer-button.active { color: #fff; }
-      ytmusic-player.ytmr-hide-video { contain: layout; }
-      ytmusic-player.ytmr-hide-video #song-image img { object-fit: contain !important; }
-      ytmusic-player.ytmr-hide-video #song-video, ytmusic-player.ytmr-hide-video:has(> #ytmr-art[src]) #song-image { visibility: hidden !important; }
+      html[ytmr-hide-video] ytmusic-player { contain: layout; }
+      html[ytmr-hide-video] ytmusic-player #song-image img { object-fit: contain !important; }
+      html[ytmr-hide-video] ytmusic-player #song-video, html[ytmr-hide-video] ytmusic-player:has(> #ytmr-art[src]) #song-image { visibility: hidden !important; }
       #ytmr-art { display: none; position: absolute; inset: 0; width: 100% !important; height: 100% !important; max-width: none !important; object-fit: contain !important; transform: none !important; border-radius: 0 !important; z-index: 5; pointer-events: none; }
-      ytmusic-player.ytmr-hide-video #ytmr-art[src] { display: block; }
+      html[ytmr-hide-video] ytmusic-player #ytmr-art[src] { display: block; }
+
+      /* Page content eases in as YTM renders it, also rows loaded while scrolling. Only
+         opacity and transform animate, which the compositor runs off the page's thread. */
+      @keyframes ytmr-enter { from { opacity: 0; transform: translateY(14px); } }
+      ytmusic-section-list-renderer > #contents > *,
+      ytmusic-responsive-header-renderer, ytmusic-immersive-header-renderer, ytmusic-detail-header-renderer,
+      ytmusic-editable-playlist-detail-header-renderer, ytmusic-tabbed-search-results-renderer {
+        animation: ytmr-enter 0.36s cubic-bezier(0.2, 0.7, 0.2, 1) both;
+      }
+      ytmusic-section-list-renderer > #contents > :nth-child(2) { animation-delay: 0.04s; }
+      ytmusic-section-list-renderer > #contents > :nth-child(3) { animation-delay: 0.08s; }
+      ytmusic-section-list-renderer > #contents > :nth-child(n + 4) { animation-delay: 0.12s; }
+      ytmusic-two-row-item-renderer .image-wrapper img { transition: transform 0.25s cubic-bezier(0.2, 0.7, 0.2, 1); }
+      ytmusic-two-row-item-renderer:hover .image-wrapper img { transform: scale(1.04); }
+      yt-page-navigation-progress #progress { background: #f0445f !important; transition: transform 0.2s ease-out !important; }
+
+      #ytmr-up-next {
+        position: fixed; right: 24px; bottom: 24px; z-index: 1000; width: 340px; box-sizing: border-box;
+        display: grid; grid-template-columns: 56px 1fr auto; align-items: center; gap: 12px; padding: 12px 12px 14px;
+        border-radius: 14px; overflow: hidden; color: #fff; font: 13px "Segoe UI", system-ui, sans-serif;
+        background: rgba(24, 24, 31, 0.92); border: 1px solid rgba(255,255,255,0.1);
+        box-shadow: 0 18px 48px rgba(0,0,0,0.5); backdrop-filter: blur(18px);
+        opacity: 0; transform: translateY(18px) scale(0.96); pointer-events: none;
+        transition: opacity 0.3s ease, transform 0.4s cubic-bezier(0.2, 0.8, 0.2, 1);
+      }
+      #ytmr-up-next.show { opacity: 1; transform: none; pointer-events: auto; }
+      #ytmr-up-next img { width: 56px; height: 56px; border-radius: 8px; object-fit: cover; background: rgba(255,255,255,0.06); }
+      #ytmr-up-next .text { min-width: 0; display: grid; gap: 2px; }
+      #ytmr-up-next .label { font-size: 11px; font-weight: 700; letter-spacing: 0.6px; text-transform: uppercase; color: #f0445f; }
+      #ytmr-up-next .title { font-weight: 600; font-size: 14px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+      #ytmr-up-next .artist { color: rgba(255,255,255,0.6); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+      #ytmr-up-next .actions { display: flex; gap: 4px; }
+      #ytmr-up-next button { display: grid; place-items: center; width: 32px; height: 32px; border: 0; border-radius: 50%; background: rgba(255,255,255,0.08); color: #fff; cursor: pointer; }
+      #ytmr-up-next button:hover { background: rgba(255,255,255,0.18); }
+      #ytmr-up-next button.play { background: #fff; color: #000; }
+      #ytmr-up-next button.play:hover { background: #ddd; }
+      #ytmr-up-next svg { width: 18px; height: 18px; fill: currentColor; }
+      #ytmr-up-next .countdown { position: absolute; left: 0; bottom: 0; height: 3px; width: 100%; background: linear-gradient(90deg, #f0445f, #ff8fab); transform-origin: left; transition: transform 0.3s linear; }
+
+      @media (prefers-reduced-motion: reduce) {
+        ytmusic-section-list-renderer > #contents > *, ytmusic-responsive-header-renderer, ytmusic-immersive-header-renderer,
+        ytmusic-detail-header-renderer, ytmusic-editable-playlist-detail-header-renderer, ytmusic-tabbed-search-results-renderer { animation: none; }
+        #ytmr-up-next { transition: opacity 0.2s; transform: none; }
+      }
     `;
     document.head.appendChild(css);
   }
@@ -515,6 +559,7 @@
     graph: null,
     trackId: "",
     manualSwitch: false,
+    watched: null,
     media: () => document.querySelector("#movie_player video") || document.querySelector("video"),
     skippedId: "",
     skipIfDisliked(videoId, status) {
@@ -564,7 +609,17 @@
         toggle.querySelector(show ? ".video-button" : ".song-button")?.click();
       }
       this.applyArt();
-      player.classList.toggle("ytmr-hide-video", !show);
+      document.documentElement.toggleAttribute("ytmr-hide-video", !show);
+      this.watchPlayer(player);
+    },
+    // YTM re-renders the player (opening its page, fullscreen), which can drop the art.
+    watchPlayer(player) {
+      if (this.watched === player) return;
+      this.watched = player;
+      new MutationObserver(() => {
+        const img = document.getElementById("ytmr-art");
+        if (!img || img.parentNode !== player) this.applyArt();
+      }).observe(player, { childList: true, attributes: true, attributeFilter: ["player-ui-state"] });
     },
     // With videos off the player area shows the track's artwork, also for tracks that only
     // exist as a video. The queue item's thumbnail replaces the response's one on track
@@ -634,15 +689,116 @@
       const g = this.graph;
       if (!g) return;
       const seconds = this.config.crossfadeSeconds;
-      const { currentTime: t, duration: d } = g.el;
+      const { currentTime: t, duration: d, playbackRate: rate } = g.el;
       let level = 1;
       // Skipped for live streams and tracks too short to fade both ends.
       if (seconds > 0 && Number.isFinite(d) && d >= seconds * 3) {
-        level = Math.max(0, Math.min(1, t / seconds, (d - t) / seconds));
+        // timeupdate fires about every 250 ms, so the level aims at the next update's position:
+        // the fade reaches silence as the track ends instead of lagging past it.
+        const ahead = t + 0.25 * rate;
+        const x = Math.max(0, Math.min(1, ahead / seconds, (d - ahead) / seconds));
+        // Squared, so loudness falls evenly instead of holding and then dropping at the end.
+        level = x * x;
       }
-      g.fade.gain.setTargetAtTime(level, g.ctx.currentTime, 0.15);
+      g.fade.gain.setTargetAtTime(level, g.ctx.currentTime, 0.06);
     }
   };
+  // --- Up next: a card announcing the next track during the last seconds of the current one.
+  const UP_NEXT_SECONDS = 15;
+  const upNext = {
+    el: null,
+    shownFor: "",
+    dismissed: "",
+    // The queue entry after the playing one, else the first autoplay suggestion.
+    next() {
+      const queue = ytmStore().getState().queue;
+      if (!queue || queue.repeatMode === "ONE") return null;
+      const renderer = (item) =>
+        item?.playlistPanelVideoRenderer || item?.playlistPanelVideoWrapperRenderer?.primaryRenderer?.playlistPanelVideoRenderer;
+      const items = queue.items || [];
+      const i = items.findIndex((item) => renderer(item)?.selected);
+      if (i < 0) return null;
+      return renderer(items[i + 1]) || renderer(queue.automixItems?.[0]) || (queue.repeatMode === "ALL" ? renderer(items[0]) : null);
+    },
+    build() {
+      const el = document.createElement("div");
+      el.id = "ytmr-up-next";
+      const img = document.createElement("img");
+      img.alt = "";
+      const text = document.createElement("div");
+      text.className = "text";
+      for (const cls of ["label", "title", "artist"]) {
+        const span = document.createElement("span");
+        span.className = cls;
+        text.appendChild(span);
+      }
+      const actions = document.createElement("div");
+      actions.className = "actions";
+      const button = (cls, title, icon, onclick) => {
+        const b = document.createElement("button");
+        b.className = cls;
+        b.title = title;
+        b.appendChild(svgIcon(icon, 18));
+        b.addEventListener("click", onclick);
+        return b;
+      };
+      actions.append(
+        button("play", "Play now", "skipNext", () => {
+          this.hide();
+          playerApi().nextVideo();
+        }),
+        button("", "Dismiss", "close", () => {
+          this.dismissed = playerApi().getPlayerResponse()?.videoDetails?.videoId ?? "";
+          this.hide();
+        })
+      );
+      const countdown = document.createElement("span");
+      countdown.className = "countdown";
+      el.append(img, text, actions, countdown);
+      document.body.appendChild(el);
+      this.el = el;
+    },
+    hide() {
+      this.el?.classList.remove("show");
+    },
+    update(media) {
+      const { currentTime: t, duration: d, playbackRate: rate } = media;
+      const id = playerApi().getPlayerResponse()?.videoDetails?.videoId ?? "";
+      const left = (d - t) / (rate || 1);
+      const due = Number.isFinite(d) && d > UP_NEXT_SECONDS * 3 && left > 0.5 && left <= UP_NEXT_SECONDS;
+      if (!due || this.dismissed === id || ytmStore().getState().player.adPlaying) return this.hide();
+      const next = this.next();
+      if (!next) return this.hide();
+      if (!this.el) this.build();
+      const key = id + next.videoId;
+      if (this.shownFor !== key) {
+        this.shownFor = key;
+        const thumbs = next.thumbnail?.thumbnails ?? [];
+        const [img, text] = this.el.children;
+        img.src = thumbs[thumbs.length - 1]?.url ?? "";
+        const runs = (v) => v?.runs?.map((r) => r.text).join("") ?? "";
+        text.children[1].textContent = runs(next.title);
+        text.children[2].textContent = runs(next.shortBylineText);
+      }
+      this.el.children[1].children[0].textContent = `Up next · ${Math.ceil(left)}s`;
+      this.el.lastChild.style.transform = `scaleX(${left / UP_NEXT_SECONDS})`;
+      this.el.classList.add("show");
+    }
+  };
+  // Media events do not bubble, so they are caught on the way down.
+  document.addEventListener(
+    "timeupdate",
+    (e) => {
+      if (e.target !== audio.media()) return;
+      try {
+        upNext.update(e.target);
+      } catch {
+        upNext.hide();
+      }
+    },
+    true
+  );
+
   document.addEventListener(
     "click",
     (e) => {
@@ -651,17 +807,39 @@
     true
   );
 
-  // F11 toggles app fullscreen while this view has focus.
-  window.addEventListener(
-    "keydown",
-    (e) => {
-      if (e.key === "F11") {
-        e.preventDefault();
-        invoke("ytm_toggle_fullscreen");
-      }
-    },
-    true
-  );
+  // --- Keyboard controls: the app's key map (keyboard.rs), matched as the shell matches it
+  // (src/lib/keyboard.ts). Caught before YTM's own handlers, so a key never acts twice.
+  const REPEATING_KEYS = new Set(["volumeUp", "volumeDown", "seekForward", "seekBack"]);
+  const keyCombo = (e) => {
+    const key = e.key === " " ? "Space" : e.key.length === 1 ? e.key.toUpperCase() : e.key;
+    const shift = e.shiftKey && (e.key.length > 1 || /^[a-z]$/i.test(e.key));
+    return [e.ctrlKey && "Ctrl", e.altKey && "Alt", shift && "Shift", key].filter(Boolean).join("+");
+  };
+  const keyIgnored = (e, keys) => {
+    if (e.target.closest?.("input:not([type=range]):not([type=checkbox]), textarea, select, [contenteditable], ytmusic-search-box")) {
+      return !(e.ctrlKey || e.altKey || /^F\d+$/.test(e.key));
+    }
+    return keys === "Space" && !!e.target.closest?.("button, a, input, [role=button], [role=slider], tp-yt-paper-item, tp-yt-paper-icon-button, yt-button-shape");
+  };
+  waitFor(() => window.__TAURI_INTERNALS__)
+    .then(() => invoke("keyboard_bindings"))
+    .then((bindings) => {
+      const actions = new Map(bindings.flatMap((b) => b.keys.map((k) => [k, b.action])));
+      window.addEventListener(
+        "keydown",
+        (e) => {
+          if (e.isComposing) return;
+          const keys = keyCombo(e);
+          const action = actions.get(keys);
+          if (!action || keyIgnored(e, keys)) return;
+          e.preventDefault();
+          e.stopImmediatePropagation();
+          if (e.repeat && !REPEATING_KEYS.has(action)) return;
+          invoke("keyboard_action", { action });
+        },
+        true
+      );
+    });
   // Esc leaves app fullscreen too, unless YTM used it (closing a dialog or the search box)
   // or the page itself is fullscreen, which the browser exits on its own.
   let appFullscreen = false;
@@ -676,6 +854,7 @@
     plugins: "M20.5 11H19V7c0-1.1-.9-2-2-2h-4V3.5C13 2.12 11.88 1 10.5 1S8 2.12 8 3.5V5H4c-1.1 0-1.99.9-1.99 2v3.8H3.5c1.49 0 2.7 1.21 2.7 2.7s-1.21 2.7-2.7 2.7H2V20c0 1.1.9 2 2 2h3.8v-1.5c0-1.49 1.21-2.7 2.7-2.7 1.49 0 2.7 1.21 2.7 2.7V22H17c1.1 0 2-.9 2-2v-4h1.5c1.38 0 2.5-1.12 2.5-2.5S21.88 11 20.5 11z",
     mini: "M19 11h-8v6h8v-6zm4 8V4.98C23 3.88 22.1 3 21 3H3c-1.1 0-2 .88-2 1.98V19c0 1.1.9 2 2 2h18c1.1 0 2-.9 2-2zm-2 .02H3V4.97h18v14.05z",
     settings: "M19.14 12.94c.04-.3.06-.61.06-.94 0-.32-.02-.64-.07-.94l2.03-1.58a.49.49 0 0 0 .12-.61l-1.92-3.32a.488.488 0 0 0-.59-.22l-2.39.96c-.5-.38-1.03-.7-1.62-.94l-.36-2.54a.484.484 0 0 0-.48-.41h-3.84c-.24 0-.43.17-.47.41l-.36 2.54c-.59.24-1.13.57-1.62.94l-2.39-.96c-.22-.08-.47 0-.59.22L2.74 8.87c-.12.21-.08.47.12.61l2.03 1.58c-.05.3-.09.63-.09.94s.02.64.07.94l-2.03 1.58a.49.49 0 0 0-.12.61l1.92 3.32c.12.22.37.29.59.22l2.39-.96c.5.38 1.03.7 1.62.94l.36 2.54c.05.24.24.41.48.41h3.84c.24 0 .44-.17.47-.41l.36-2.54c.59-.24 1.13-.56 1.62-.94l2.39.96c.22.08.47 0 .59-.22l1.92-3.32c.12-.22.07-.47-.12-.61l-2.01-1.58zM12 15.6c-1.98 0-3.6-1.62-3.6-3.6s1.62-3.6 3.6-3.6 3.6 1.62 3.6 3.6-1.62 3.6-3.6 3.6z",
+    skipNext: "M6 18l8.5-6L6 6v12zM16 6v12h2V6h-2z",
     minimize: "M5 11h14v2H5z",
     maximize: "M4 4h16v16H4V4zm2 2v12h12V6H6z",
     restore: "M8 4h12v12h-2V6H8V4zM4 8h12v12H4V8zm2 2v8h8v-8H6z",
@@ -910,6 +1089,7 @@
     setAdBlock: (on) => (adblock.enabled = on),
     navigateHome: () => navigate({ browseEndpoint: { browseId: "FEmusic_home" } }),
     exitFullscreen: () => document.fullscreenElement && document.exitFullscreen(),
+    focusSearch: () => document.querySelector("ytmusic-search-box input")?.focus(),
     setAudio: (config) => audio.set(config),
     // Replaced once the window controls exist.
     setMaximized: () => {},

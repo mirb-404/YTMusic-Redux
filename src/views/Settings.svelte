@@ -8,6 +8,7 @@
   import Row from "../components/Row.svelte";
   import Toggle from "../components/Toggle.svelte";
   import type { IconName } from "../lib/icons";
+  import { keyboardBindings, type Binding } from "../lib/keyboard";
   import { api, onMemory, onSettings, type Companion, type Memory, type Settings, type ShortcutKey } from "../lib/api";
 
   type Tab = "general" | "appearance" | "playback" | "audio" | "integrations" | "shortcuts" | "about";
@@ -47,6 +48,7 @@
   let s = $state<Settings | null>(null);
   let memory = $state<Memory | null>(null);
   let companions = $state<Companion[]>([]);
+  let bindings = $state<Binding[]>([]);
   let lastfmSignedIn = $state(false);
   let info = $state({ version: "", tauri: "" });
   let error = $state<string | null>(null);
@@ -58,6 +60,7 @@
 
   onMount(() => {
     api.getSettings().then((v) => (s = v));
+    keyboardBindings().then((b) => (bindings = b));
     api.getMemory().then((m) => (memory = m));
     api.appInfo().then((i) => (info = i));
     api.lastfmSignedIn().then((v) => (lastfmSignedIn = v));
@@ -380,6 +383,16 @@
                 {/each}
               </div>
               <button class="btn reset" onclick={() => api.resetSettings("shortcuts").then(async () => (s = await api.getSettings()))}>Reset shortcuts</button>
+
+              <h2>Keyboard controls</h2>
+              <p class="lead">Work while the app window is focused. Tab moves between controls; F6 moves between the page and the player bar.</p>
+              <div class="card">
+                {#each bindings as b (b.action)}
+                  <Row title={b.description}>
+                    <span class="keys">{#each b.keys as k (k)}<kbd>{k.replace("Arrow", "")}</kbd>{/each}</span>
+                  </Row>
+                {/each}
+              </div>
             {:else if tab === "about"}
               <div class="about">
                 <div class="hero"><Icon name="play" size={44} /></div>
@@ -497,6 +510,12 @@
   .empty { color: var(--text-faint); margin: 4px 0 0; font-size: 13px; }
 
   .reset { margin-top: 14px; }
+  .keys { display: flex; gap: 6px; }
+  kbd {
+    min-width: 26px; padding: 3px 8px; border-radius: 6px; text-align: center;
+    font: 600 12px "Segoe UI", system-ui, sans-serif; color: var(--text);
+    background: var(--surface-hover); border: 1px solid var(--border); border-bottom-width: 2px;
+  }
 
   .eq { padding: 4px 18px 18px; border-top: 1px solid var(--border); }
   .eq.off { opacity: 0.45; }

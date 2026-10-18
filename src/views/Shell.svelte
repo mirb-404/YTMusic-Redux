@@ -8,6 +8,7 @@
   import NowPlaying from "../components/NowPlaying.svelte";
   import PlayerBar from "../components/PlayerBar.svelte";
   import Tour from "../components/Tour.svelte";
+  import { keyboardControls } from "../lib/keyboard";
   import { api, bestThumbnail, onMemory, onPlayerState, onSettings, type Memory, type PlayerState, type Settings } from "../lib/api";
   import { LyricsTrack } from "../lib/lyrics.svelte";
   import { ProgressClock } from "../lib/progress.svelte";
@@ -28,7 +29,8 @@
   // It stays in fullscreen, where its window buttons give way to an exit button.
   const tourOpen = $derived(memory?.tourOpen ?? false);
   // The tour also hides the YTM view, and points at controls in this title bar.
-  const showTitleBar = $derived(nowPlayingOpen || tourOpen || !memory?.ytmOwnsHeader);
+  // The now playing view carries the window controls in its own header instead.
+  const showTitleBar = $derived(tourOpen || !memory?.ytmOwnsHeader);
   // A fullscreen window has nothing to drag or maximize.
   const drag = $derived(fullscreen ? undefined : true);
 
@@ -61,10 +63,7 @@
 
 
   function onKey(e: KeyboardEvent) {
-    if (e.key === "F11") {
-      e.preventDefault();
-      api.toggleFullscreen();
-    } else if (e.key === "Escape" && nowPlayingOpen) {
+    if (e.key === "Escape" && nowPlayingOpen) {
       api.setNowPlayingOpen(false);
     } else if (e.key === "Escape" && fullscreen) {
       api.toggleFullscreen();
@@ -76,6 +75,8 @@
     api.getPlayerState().then((s) => (player = s));
     api.getSettings().then(applySettings);
     window.addEventListener("keydown", onKey);
+    let onControlKey: ((e: KeyboardEvent) => void) | undefined;
+    keyboardControls().then((handler) => window.addEventListener("keydown", (onControlKey = handler)));
     appWindow.isMaximized().then((m) => (maximized = m));
     const unlisten = [
       onMemory((m) => (memory = m)),
@@ -88,6 +89,7 @@
     ];
     return () => {
       window.removeEventListener("keydown", onKey);
+      if (onControlKey) window.removeEventListener("keydown", onControlKey);
       unlisten.forEach((p) => p.then((f) => f()));
     };
   });
@@ -127,6 +129,12 @@
           <Icon name={playing ? "pause" : "play"} size={18} />
         </button>
       {/if}
+      {@render windowControls()}
+    </div>
+  </header>
+  {/if}
+
+  {#snippet windowControls()}
       {#if devTools}
         <button class="icon-btn" title="YouTube Music developer tools" onclick={() => api.openYtmDevtools()}><Icon name="code" size={18} /></button>
       {/if}
@@ -143,9 +151,7 @@
         </button>
       {/if}
       <button class="win-btn close" title="Close" onclick={() => appWindow.close()}><Icon name="close" size={16} /></button>
-    </div>
-  </header>
-  {/if}
+  {/snippet}
 
   {#if nowPlayingOpen}
     <div class="layer" in:fly={{ y: 28, duration: 260, easing: cubicOut }} out:fade={{ duration: 140 }}>
@@ -153,7 +159,10 @@
       {player}
       {lyrics}
       {lineIndex}
+      {elapsed}
       {showVideos}
+      controls={showTitleBar ? undefined : windowControls}
+      {drag}
       onclose={() => api.setNowPlayingOpen(false)}
       onseek={(t) => {
         clock.sync(t);

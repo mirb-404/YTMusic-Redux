@@ -46,8 +46,11 @@ const UI_COMMANDS: &[&str] = &[
 
 const AUTH_COMMANDS: &[&str] = &["companion_auth_info", "companion_auth_result"];
 
+/// Allowed in both the YTM view and the app shell: keys work whichever has focus.
+const KEYBOARD_COMMANDS: &[&str] = &["keyboard_bindings", "keyboard_action"];
+
 fn main() {
-    let commands: Vec<&str> = [BRIDGE_COMMANDS, UI_COMMANDS, AUTH_COMMANDS].concat();
+    let commands: Vec<&str> = [BRIDGE_COMMANDS, UI_COMMANDS, AUTH_COMMANDS, KEYBOARD_COMMANDS].concat();
     let commands: &'static [&'static str] = Box::leak(commands.into_boxed_slice());
     tauri_build::try_build(tauri_build::Attributes::new().app_manifest(tauri_build::AppManifest::new().commands(commands)))
         .expect("failed to run tauri-build");
