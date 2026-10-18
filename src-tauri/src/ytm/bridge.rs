@@ -40,6 +40,7 @@ pub fn ytm_get_config(webview: Webview, app: AppHandle) -> Result<BridgeConfig> 
         modern_css: super::modern_css(&app),
         audio: super::audio_config(&s),
         native_browse: windows::native_browse(&app),
+        up_next: s.appearance.up_next,
     })
 }
 

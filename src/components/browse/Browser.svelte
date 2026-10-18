@@ -95,11 +95,11 @@
 </script>
 
 <header class="topbar" data-tauri-drag-region={drag}>
-  <div class="history" data-tauri-drag-region={drag}>
+  <div class="history" data-tour="history" data-tauri-drag-region={drag}>
     <button class="round" class:video={videoOpen} title={videoOpen ? "Back to the pages (Esc)" : "Back (Alt+Left)"} disabled={!videoOpen && !router.canBack} onclick={back}><Icon name={videoOpen ? "chevronDown" : "chevronLeft"} size={22} /></button>
     <button class="round" title="Forward (Alt+Right)" disabled={!router.canForward} onclick={() => router.forward()}><Icon name="chevronRight" size={22} /></button>
   </div>
-  <div class="center" data-tauri-drag-region={drag}><SearchBox bind:this={search} /></div>
+  <div class="center" data-tauri-drag-region={drag}><div class="search-slot" data-tour="search"><SearchBox bind:this={search} /></div></div>
   <div class="right">{@render controls()}</div>
 </header>
 
@@ -156,6 +156,7 @@
   .round:disabled { opacity: 0.35; cursor: default; }
   .round.video { background: #fff; color: #000; }
   .center { display: flex; justify-content: center; padding: 0 24px; min-width: 0; }
+  .search-slot { width: min(520px, 100%); display: flex; }
   .right { display: flex; align-items: center; align-self: stretch; }
 
   .body { flex: 1; min-height: 0; display: flex; }

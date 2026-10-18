@@ -175,6 +175,7 @@
     </button>
     <button
       class="icon-btn"
+      data-tour="queue"
       class:active={native && ui.queueOpen}
       title="Queue (Q)"
       disabled={!video}

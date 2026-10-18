@@ -821,6 +821,7 @@
     el: null,
     shownFor: "",
     dismissed: "",
+    enabled: true,
     // The queue entry after the playing one, else the first autoplay suggestion.
     next() {
       const queue = ytmStore().getState().queue;
@@ -897,6 +898,7 @@
       this.el?.classList.remove("show");
     },
     update(media) {
+      if (!this.enabled) return this.hide();
       const { currentTime: t, duration: d, playbackRate: rate } = media;
       const id = playerApi().getPlayerResponse()?.videoDetails?.videoId ?? "";
       const left = (d - t) / (rate || 1);
@@ -1256,6 +1258,7 @@
       }, 1500);
     },
     setNative: (on) => document.documentElement.toggleAttribute("ytmr-native", on),
+    setUpNext: (on) => (upNext.enabled = on),
     setMini: (on) => {
       document.documentElement.toggleAttribute("ytmr-mini", on);
       if (on && !document.getElementById("ytmr-mini-controls")) {
@@ -1382,6 +1385,7 @@
     if (config.customCss !== null) setCustomCss(config.customCss);
     setModernUi(config.modernCss);
     document.documentElement.toggleAttribute("ytmr-native", config.nativeBrowse);
+    upNext.enabled = config.upNext;
     audio.set(config.audio);
     autoCloseToasts();
     // As upstream does: after the player is up, so startup is not slowed down.

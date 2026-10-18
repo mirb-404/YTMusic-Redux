@@ -25,6 +25,7 @@
   let modernUi = $state(true);
   let tintedBar = $state(true);
   let nativeBrowse = $state(true);
+  let upNext = $state(true);
   let showVideos = $state(true);
 
   const clock = new ProgressClock();
@@ -54,6 +55,7 @@
     modernUi = s.appearance.modernUi;
     tintedBar = s.appearance.tintedPlayerBar;
     nativeBrowse = s.appearance.nativeBrowse;
+    upNext = s.appearance.upNext;
     showVideos = s.playback.showVideos;
   }
 
@@ -183,7 +185,7 @@
     <!-- Kept mounted under the lyrics view, so pages keep their place. -->
     <div class="native">
       <Browser controls={windowControls} {drag} {session} {player} videoOpen={memory?.videoView === "open"} />
-      <UpNext {player} {elapsed} />
+      {#if upNext}<UpNext {player} {elapsed} />{/if}
       {#if nowPlayingOpen}
         <div class="layer overlay" in:fly={{ y: 28, duration: 260, easing: cubicOut }} out:fade={{ duration: 140 }}>
           <NowPlaying

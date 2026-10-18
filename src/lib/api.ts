@@ -40,6 +40,7 @@ export type Settings = {
     tintedPlayerBar: boolean;
     nativeBrowse: boolean;
     videoMiniPlayer: boolean;
+    upNext: boolean;
     alwaysShowVolumeSlider: boolean;
     customCssEnabled: boolean;
     customCssPath: string | null;

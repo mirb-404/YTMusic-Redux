@@ -78,6 +78,9 @@ pub fn apply(app: &AppHandle, old: Option<&Settings>, new: &Settings) {
             ytm::call(app, "setModernUi", &[css]);
             crate::windows::layout_main(app);
         }
+        if changed(|s| s.appearance.up_next) {
+            ytm::call(app, "setUpNext", &[json!(new.appearance.up_next)]);
+        }
         if changed(|s| s.appearance.native_browse || s.appearance.modern_ui) {
             ytm::call(app, "setNative", &[json!(crate::windows::native_browse(app))]);
             crate::windows::layout_main(app);

@@ -9,21 +9,29 @@
   // screen, e.g. the player bar with Modern UI off, are left out.
   let { onclose }: { onclose: () => void } = $props();
 
-  type Step = { target?: string; title: string; body: string };
+  // `native` limits a step to the app's own pages (true) or YouTube Music's (false).
+  type Step = { target?: string; title: string; body: string; native?: boolean };
   const ALL_STEPS: Step[] = [
     { title: "Welcome to YTMusic Redux", body: "A quick look at the controls that make this more than a browser tab. It takes half a minute." },
+    { target: "sidebar", title: "Your music", body: "Home, Explore, Library, History and your playlists. The app draws these pages itself, so they open instantly. ＋ makes a new playlist." },
     { target: "nav", title: "Find your way", body: "Back, forward and home move through YouTube Music instantly, without reloading the page." },
+    { target: "history", title: "Back and forward", body: "Step through the pages you visited, or use your mouse's side buttons and Alt+Left / Alt+Right." },
+    { target: "search", title: "Search", body: "Suggestions appear as you type. Press / anywhere to jump here, then filter results by songs, albums, artists and more." },
+    { native: true, title: "Right-click anything", body: "Songs, albums, artists and playlists all have a menu: play next, add to queue, save to a playlist, like, share and more. The ⋯ button opens it too." },
     { target: "plugins", title: "Plugins", body: "Turn Discord presence, Last.fm scrobbling and the companion server on or off in one click." },
     { target: "mini", title: "Mini player", body: "A small always-on-top player for when you're working in other windows." },
     { target: "settings", title: "Settings", body: "Equalizer, ad blocking, playback speed, shortcuts, themes and every other option." },
-    { target: "art", title: "Player page", body: "Click the artwork to open YouTube Music's player page with the full queue." },
+    { target: "art", native: true, title: "Video view", body: "Playing a song opens it with the music video or artwork, its queue and lyrics. Click the artwork to open it again; back or Esc slides it away." },
+    { target: "art", native: false, title: "Player page", body: "Click the artwork to open YouTube Music's player page with the full queue." },
     { target: "controls", title: "Playback", body: "Shuffle, previous, play, next and repeat. Media keys and global shortcuts work too." },
     { target: "seek", title: "The wave", body: "The seek line ripples while music plays. Click or drag anywhere on it to jump." },
     { target: "lyrics", title: "Synced lyrics", body: "Opens Now Playing with lyrics that follow the song. Click a line to jump to it." },
     { target: "video", title: "Video or audio only", body: "Switch music videos off to stream audio only and show the artwork instead, which also saves bandwidth." },
+    { target: "queue", native: true, title: "Queue", body: "Opens beside your pages. Click a track to play it, drag to reorder, or remove what you don't want next." },
     { target: "sleep", title: "Sleep timer", body: "Pause the music after a set time. The countdown shows right here." },
     { target: "volume", title: "Volume", body: "Drag the slider, or scroll anywhere over it." },
     { target: "fullscreen", title: "Full screen", body: "F11 goes full screen with every control still in reach. Esc or F11 brings you back." },
+    { title: "Keyboard", body: "Space plays and pauses, L likes, Y opens lyrics, Q the queue, Ctrl+Shift+X closes the track. Press ? for every shortcut." },
     { title: "You're all set", body: "Enjoy the music. You can replay this tour any time from Settings → General." }
   ];
 
@@ -83,7 +91,9 @@
   }
 
   onMount(() => {
-    steps = ALL_STEPS.filter((s) => !s.target || find(s.target));
+    // The app's own pages have a sidebar; YouTube Music's website does not.
+    const native = !!find("sidebar");
+    steps = ALL_STEPS.filter((s) => (s.native === undefined || s.native === native) && (!s.target || find(s.target)));
     window.addEventListener("resize", measure);
     window.addEventListener("keydown", key, true);
     return () => {
@@ -186,10 +196,14 @@
   h2 { margin: 4px 0 6px; font-size: 17px; line-height: 1.3; }
   p { margin: 0; color: var(--text-muted); font-size: 13.5px; line-height: 1.5; }
 
-  .footer { display: flex; align-items: center; gap: 8px; margin-top: 18px; }
-  .dots { display: flex; gap: 4px; margin-right: auto; }
-  .dots span { width: 5px; height: 5px; border-radius: 3px; background: rgba(255, 255, 255, 0.18); transition: width 0.3s var(--ease), background 0.3s; }
-  .dots span.on { width: 14px; background: var(--accent); }
+  /* The progress dots take a line of their own above the buttons: with many steps they
+     would otherwise push the buttons past the card. */
+  .footer { display: flex; flex-wrap: wrap; align-items: center; justify-content: flex-end; gap: 8px; margin-top: 18px; }
+  .dots { flex: 1 0 100%; display: flex; gap: 4px; margin-bottom: 6px; min-width: 0; }
+  .card.intro .dots { justify-content: center; }
+  .footer .link { margin-right: auto; }
+  .dots span { flex: 0 1 5px; min-width: 3px; height: 5px; border-radius: 3px; background: rgba(255, 255, 255, 0.18); transition: flex-basis 0.3s var(--ease), background 0.3s; }
+  .dots span.on { flex-basis: 14px; background: var(--accent); }
   .link { padding: 6px 8px; color: var(--text-faint); font-size: 13px; font-weight: 600; }
   .link:hover { color: var(--text); }
   .footer .btn { padding: 7px 14px; font-size: 13px; }

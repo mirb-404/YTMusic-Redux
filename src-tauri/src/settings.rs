@@ -40,6 +40,8 @@ pub struct Appearance {
     pub native_browse: bool,
     /// Leaving the video view shrinks it into a mini player instead of closing it.
     pub video_mini_player: bool,
+    /// The next track is announced during the last seconds of the current one.
+    pub up_next: bool,
     pub always_show_volume_slider: bool,
     pub custom_css_enabled: bool,
     pub custom_css_path: Option<String>,
@@ -54,6 +56,7 @@ impl Default for Appearance {
             tinted_player_bar: true,
             native_browse: true,
             video_mini_player: false,
+            up_next: true,
             always_show_volume_slider: false,
             custom_css_enabled: false,
             custom_css_path: None,

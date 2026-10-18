@@ -188,6 +188,7 @@ pub struct BridgeConfig {
     pub audio: Value,
     /// The app draws the pages; YTM's player page opens only when asked for.
     pub native_browse: bool,
+    pub up_next: bool,
 }
 
 /// Creates (or recreates) the YTM webview inside the main window.

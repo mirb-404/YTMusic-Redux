@@ -7,8 +7,9 @@
     restart = false,
     danger = false,
     nested = false,
+    beta = false,
     children
-  }: { title: string; description?: string; restart?: boolean; danger?: boolean; nested?: boolean; children?: Snippet } = $props();
+  }: { title: string; description?: string; restart?: boolean; danger?: boolean; nested?: boolean; beta?: boolean; children?: Snippet } = $props();
 </script>
 
 <div class="row" class:nested>
@@ -17,6 +18,7 @@
       {title}
       {#if restart}<span class="tag">Restart</span>{/if}
       {#if danger}<span class="tag danger">Caution</span>{/if}
+      {#if beta}<span class="tag beta">Beta</span>{/if}
     </div>
     {#if description}<div class="description">{description}</div>{/if}
   </div>
@@ -49,4 +51,5 @@
     color: var(--warning);
   }
   .tag.danger { background: rgba(255, 107, 107, 0.14); color: var(--danger); }
+  .tag.beta { background: color-mix(in srgb, var(--accent) 16%, transparent); color: var(--accent); }
 </style>

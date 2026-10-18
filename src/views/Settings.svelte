@@ -177,26 +177,30 @@
             {:else if tab === "appearance"}
               <h1>Appearance</h1>
               <div class="card">
-                <Row title="Modern UI" description="App player bar with wave seek line and a flat dark YouTube Music theme">
+                <Row title="Modern UI" description="The app's own player bar with the wave seek line, and a flat dark YouTube Music theme">
                   <Toggle label="Modern UI" checked={s.appearance.modernUi} onchange={(v) => set("appearance.modernUi", v)} />
                 </Row>
                 {#if s.appearance.modernUi}
-                  <Row title="Native pages" description="The app draws YouTube Music's pages itself, for instant navigation; off shows YouTube Music's own website" nested>
+                  <Row title="Native pages" description="The app draws YouTube Music's pages itself, for instant navigation, menus and the queue panel; off shows YouTube Music's own website" nested>
                     <Toggle label="Native pages" checked={s.appearance.nativeBrowse} onchange={(v) => set("appearance.nativeBrowse", v)} />
                   </Row>
                   {#if s.appearance.nativeBrowse}
-                    <Row title="Mini player" description="Leaving the video view shrinks it into a small video above the player bar instead of closing it" nested>
+                    <Row title="Mini player" description="Leaving the video view shrinks it into a small video above the player bar instead of closing it" nested beta>
                       <Toggle label="Mini player" checked={s.appearance.videoMiniPlayer} onchange={(v) => set("appearance.videoMiniPlayer", v)} />
                     </Row>
                   {/if}
                   <Row title="Tinted player bar" description="Colors the player bar from the playing track's artwork; off keeps the plain dark bar" nested>
                     <Toggle label="Tinted player bar" checked={s.appearance.tintedPlayerBar} onchange={(v) => set("appearance.tintedPlayerBar", v)} />
                   </Row>
+                {:else}
+                  <Row title="Always show volume slider" description="Keeps YouTube Music's own volume slider open in its player bar" nested>
+                    <Toggle label="Always show volume slider" checked={s.appearance.alwaysShowVolumeSlider} onchange={(v) => set("appearance.alwaysShowVolumeSlider", v)} />
+                  </Row>
                 {/if}
-                <Row title="Always show volume slider">
-                  <Toggle label="Always show volume slider" checked={s.appearance.alwaysShowVolumeSlider} onchange={(v) => set("appearance.alwaysShowVolumeSlider", v)} />
+                <Row title="Up next" description="Announces the next track with a small card during the last 15 seconds of the current one">
+                  <Toggle label="Up next" checked={s.appearance.upNext} onchange={(v) => set("appearance.upNext", v)} />
                 </Row>
-                <Row title="Zoom" description="Scale of the YouTube Music page">
+                <Row title="Zoom" description={s.appearance.modernUi && s.appearance.nativeBrowse ? "Scale of YouTube Music's video view and sign-in pages" : "Scale of the YouTube Music page"}>
                   <div class="slider">
                     <input type="range" min="50" max="200" step="5" value={s.appearance.zoom} onchange={(e) => set("appearance.zoom", Number(e.currentTarget.value))} />
                     <span class="value">{s.appearance.zoom}%</span>

@@ -37,7 +37,7 @@
 </script>
 
 <aside class="sidebar">
-  <nav class="main" data-tour="nav">
+  <nav class="main" data-tour="sidebar">
     {#each nav as n (n.label)}
       <button class:active={activeId === n.endpoint.browseEndpoint?.browseId} onclick={() => router.go({ kind: "browse", endpoint: n.endpoint })}>
         <Icon name={n.icon} size={22} /><span>{n.label}</span>
