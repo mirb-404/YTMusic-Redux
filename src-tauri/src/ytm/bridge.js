@@ -128,6 +128,7 @@
       .ytmd-player-bar-control.library-button.hidden, .ytmd-player-bar-control.playlist-button.hidden { display: none; }
       .ytmd-player-bar-control.sleep-timer-button.active { color: #fff; }
       ytmusic-player.ytmr-hide-video { contain: layout; }
+      ytmusic-player.ytmr-hide-video #song-image img { object-fit: contain !important; }
       ytmusic-player.ytmr-hide-video #song-video, ytmusic-player.ytmr-hide-video:has(> #ytmr-art[src]) #song-image { visibility: hidden !important; }
       #ytmr-art { display: none; position: absolute; inset: 0; width: 100% !important; height: 100% !important; max-width: none !important; object-fit: contain !important; transform: none !important; border-radius: 0 !important; z-index: 5; pointer-events: none; }
       ytmusic-player.ytmr-hide-video #ytmr-art[src] { display: block; }
@@ -588,9 +589,17 @@
       const player = document.querySelector("ytmusic-player");
       if (!player) return;
       const thumbnails = hook().ytmPlayerBar?.playerApi?.getPlayerResponse()?.videoDetails?.thumbnail?.thumbnails;
-      const largest = thumbnails?.length ? [...thumbnails].sort((a, b) => b.width - a.width)[0].url : null;
-      // The whole image at full size: googleusercontent URLs end in sizing and crop options.
-      const art = largest?.replace(/=w\d+-h\d+[^/]*$/, "=w1200-h1200-l90-rj") ?? null;
+      const largest = thumbnails?.length ? [...thumbnails].sort((a, b) => b.width - a.width)[0] : null;
+      // googleusercontent URLs end in sizing options and are served at exactly that size, so
+      // the larger size keeps the thumbnail's own aspect ratio: a fixed square stretched
+      // every non-square (video) thumbnail.
+      let art = largest?.url ?? null;
+      if (art && largest.width > 0 && largest.height > 0) {
+        const scale = Math.max(1, 1200 / Math.max(largest.width, largest.height));
+        const w = Math.round(largest.width * scale);
+        const h = Math.round(largest.height * scale);
+        art = art.replace(/=w\d+-h\d+[^/]*$/, `=w${w}-h${h}-l90-rj`);
+      }
       let img = document.getElementById("ytmr-art");
       if (!img || img.parentNode !== player) {
         img?.remove();
