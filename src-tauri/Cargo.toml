@@ -1,6 +1,6 @@
 [package]
 name = "ytmusic-redux"
-version = "2.2.0"
+version = "2.3.0"
 description = "YTMusic Redux: a fast YouTube Music desktop client built with Tauri and Rust"
 authors = ["Mirang Bhandari", "YTMusic Redux contributors"]
 edition = "2021"
@@ -30,11 +30,12 @@ tokio = { version = "1", features = ["net", "time", "sync", "io-util", "macros",
 axum = "0.8"
 socketioxide = { version = "0.18", features = ["extensions"] }
 tower-http = { version = "0.6", features = ["cors"] }
-reqwest = { version = "0.12", default-features = false, features = ["json", "rustls-tls"] }
+reqwest = { version = "0.12", default-features = false, features = ["json", "rustls-tls", "gzip", "brotli"] }
 notify = "8"
 keyring = { version = "3", features = ["windows-native", "apple-native", "sync-secret-service"] }
 md-5 = "0.10"
 sha2 = "0.10"
+sha1 = "0.10"
 rand = "0.8"
 hex = "0.4"
 uuid = { version = "1", features = ["v4"] }

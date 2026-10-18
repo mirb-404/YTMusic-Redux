@@ -184,6 +184,8 @@ pub struct BridgeConfig {
     pub custom_css: Option<String>,
     pub modern_css: Option<&'static str>,
     pub audio: Value,
+    /// The app draws the pages; YTM's player page opens only when asked for.
+    pub native_browse: bool,
 }
 
 /// Creates (or recreates) the YTM webview inside the main window.
@@ -264,6 +266,11 @@ window.__YTMR_ADBLOCK__ = {adblock};
                 }
                 PageLoadEvent::Finished => {
                     let host = payload.url().host_str().unwrap_or_default().to_string();
+                    let foreign = host != "music.youtube.com";
+                    ctx.memory.update(app, |m| m.ytm_foreign_page = foreign);
+                    if !foreign {
+                        windows::layout_main(app);
+                    }
                     // Login and consent pages have no bridge; show them so the user can proceed.
                     if host == "consent.youtube.com" || is_google_accounts(&host) {
                         mark_loaded(app);
@@ -304,6 +311,28 @@ pub fn recreate(app: &AppHandle) -> tauri::Result<()> {
         view.close()?;
     }
     create(app)
+}
+
+/// Opens Google's sign-in in the YTM view, which shows while it is not on YouTube Music.
+pub fn sign_in(app: &AppHandle) {
+    if let Some(view) = webview(app) {
+        let _ = view.navigate(LOGIN_URL.parse().unwrap());
+    }
+}
+
+/// Stops playback and empties the queue, so the player bars show nothing playing. The track
+/// is also forgotten, so "continue where you left off" does not bring it back on restart.
+pub fn close_track(app: &AppHandle) {
+    call(app, "closeTrack", &[]);
+    let ctx = app_ctx(app);
+    ctx.player.clear_video();
+    ctx.state.update_volatile(|s| {
+        s.last_video_id.clear();
+        s.last_playlist_id.clear();
+        if s.last_url.starts_with("https://music.youtube.com/watch") {
+            s.last_url = YTM_HOME.to_string();
+        }
+    });
 }
 
 /// Goes to YTM's home page inside the running app. Reloading the URL instead would restart

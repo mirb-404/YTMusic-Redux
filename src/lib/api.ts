@@ -37,6 +37,8 @@ export type Settings = {
   };
   appearance: {
     modernUi: boolean;
+    tintedPlayerBar: boolean;
+    nativeBrowse: boolean;
     alwaysShowVolumeSlider: boolean;
     customCssEnabled: boolean;
     customCssPath: string | null;
@@ -86,6 +88,8 @@ export type Memory = {
   nowPlayingOpen: boolean;
   ytmOwnsHeader: boolean;
   tourOpen: boolean;
+  ytmPlayerPage: boolean;
+  ytmForeignPage: boolean;
 };
 
 export type LyricLine = { time: number; text: string };
@@ -96,7 +100,7 @@ export type Companion = { id: string; appId: string; appName: string; appVersion
 export type PlayerCommand =
   | "playPause" | "next" | "previous" | "toggleLike" | "toggleDislike" | "shuffle"
   | "volumeUp" | "volumeDown" | "mute" | "unmute" | "setVolume" | "seekTo" | "repeatMode"
-  | "togglePlayerPage" | "addToPlaylist";
+  | "togglePlayerPage" | "addToPlaylist" | "closeTrack";
 
 export const api = {
   getSettings: () => invoke<Settings>("get_settings"),

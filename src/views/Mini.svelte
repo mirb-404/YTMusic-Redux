@@ -88,6 +88,7 @@
       <button class="icon-btn" title={muted ? "Unmute" : "Mute"} disabled={!video} onclick={() => api.command(muted ? "unmute" : "mute")}>
         <Icon name={muted ? "muted" : "volume"} size={18} />
       </button>
+      <button class="icon-btn" title="Close track" disabled={!video} onclick={() => api.command("closeTrack")}><Icon name="stop" size={16} /></button>
     </div>
   </div>
 </div>

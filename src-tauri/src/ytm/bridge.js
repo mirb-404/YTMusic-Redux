@@ -91,6 +91,8 @@
     );
 
   const navigate = (endpoint) => document.dispatchEvent(new CustomEvent("yt-navigate", { detail: { endpoint } }));
+  // Until then, an opening player page came from playing an item on the app's own pages.
+  let quietPlayUntil = 0;
 
   const toast = (text) =>
     ytAction(document.body, "yt-open-popup-action", [
@@ -132,6 +134,14 @@
       html[ytmr-hide-video] ytmusic-player #song-video, html[ytmr-hide-video] ytmusic-player:has(> #ytmr-art[src]) #song-image { visibility: hidden !important; }
       #ytmr-art { display: none; position: absolute; inset: 0; width: 100% !important; height: 100% !important; max-width: none !important; object-fit: contain !important; transform: none !important; border-radius: 0 !important; z-index: 5; pointer-events: none; }
       html[ytmr-hide-video] ytmusic-player #ytmr-art[src] { display: block; }
+      /* An open search box is positioned at the start of its container, over the back and
+         forward arrows; it keeps its place after them instead (2 x (24px glyph + 20px margin)). */
+      .ytmd-history-forward:not(.pivotbar) + ytmusic-search-box[opened] { margin-left: 88px !important; }
+      /* Closes the track from YTM's floating mini player. */
+      #ytmr-mini-close { display: none; position: absolute; top: 8px; left: 8px; z-index: 10; width: 30px; height: 30px; place-items: center; border: 0; border-radius: 50%; background: rgba(0,0,0,0.55); color: #fff; cursor: pointer; backdrop-filter: blur(8px); transition: background 0.15s; }
+      #ytmr-mini-close:hover { background: rgba(0,0,0,0.85); }
+      #ytmr-mini-close svg { fill: currentColor; }
+      ytmusic-player[player-ui-state="MINIPLAYER"] #ytmr-mini-close { display: grid; }
 
       /* Page content eases in as YTM renders it, also rows loaded while scrolling. Only
          opacity and transform animate, which the compositor runs off the page's thread. */
@@ -148,33 +158,43 @@
       ytmusic-two-row-item-renderer:hover .image-wrapper img { transform: scale(1.04); }
       yt-page-navigation-progress #progress { background: #f0445f !important; transition: transform 0.2s ease-out !important; }
 
+      /* Up next: a floating glass pill above the app's player bar, centered under the page,
+         tinted by the next track's artwork. */
       #ytmr-up-next {
-        position: fixed; right: 24px; bottom: 24px; z-index: 1000; width: 340px; box-sizing: border-box;
-        display: grid; grid-template-columns: 56px 1fr auto; align-items: center; gap: 12px; padding: 12px 12px 14px;
-        border-radius: 14px; overflow: hidden; color: #fff; font: 13px "Segoe UI", system-ui, sans-serif;
-        background: rgba(24, 24, 31, 0.92); border: 1px solid rgba(255,255,255,0.1);
-        box-shadow: 0 18px 48px rgba(0,0,0,0.5); backdrop-filter: blur(18px);
-        opacity: 0; transform: translateY(18px) scale(0.96); pointer-events: none;
-        transition: opacity 0.3s ease, transform 0.4s cubic-bezier(0.2, 0.8, 0.2, 1);
+        position: fixed; left: 50%; bottom: 22px; z-index: 1000;
+        display: flex; align-items: center; gap: 14px; height: 64px; box-sizing: border-box;
+        max-width: min(520px, calc(100vw - 48px)); padding: 8px 10px 8px 8px;
+        border-radius: 999px; overflow: hidden; isolation: isolate;
+        color: #fff; font: 13px "Segoe UI Variable Text", "Segoe UI", system-ui, sans-serif;
+        background: rgba(18, 18, 24, 0.66);
+        backdrop-filter: blur(28px) saturate(1.8);
+        border: 1px solid rgba(255, 255, 255, 0.09);
+        box-shadow: 0 24px 60px rgba(0, 0, 0, 0.55), inset 0 1px 0 rgba(255, 255, 255, 0.07);
+        opacity: 0; transform: translate(-50%, 28px) scale(0.92); pointer-events: none;
+        transition: opacity 0.35s ease, transform 0.55s cubic-bezier(0.2, 0.9, 0.25, 1.12);
       }
-      #ytmr-up-next.show { opacity: 1; transform: none; pointer-events: auto; }
-      #ytmr-up-next img { width: 56px; height: 56px; border-radius: 8px; object-fit: cover; background: rgba(255,255,255,0.06); }
-      #ytmr-up-next .text { min-width: 0; display: grid; gap: 2px; }
-      #ytmr-up-next .label { font-size: 11px; font-weight: 700; letter-spacing: 0.6px; text-transform: uppercase; color: #f0445f; }
-      #ytmr-up-next .title { font-weight: 600; font-size: 14px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-      #ytmr-up-next .artist { color: rgba(255,255,255,0.6); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-      #ytmr-up-next .actions { display: flex; gap: 4px; }
-      #ytmr-up-next button { display: grid; place-items: center; width: 32px; height: 32px; border: 0; border-radius: 50%; background: rgba(255,255,255,0.08); color: #fff; cursor: pointer; }
-      #ytmr-up-next button:hover { background: rgba(255,255,255,0.18); }
-      #ytmr-up-next button.play { background: #fff; color: #000; }
-      #ytmr-up-next button.play:hover { background: #ddd; }
-      #ytmr-up-next svg { width: 18px; height: 18px; fill: currentColor; }
-      #ytmr-up-next .countdown { position: absolute; left: 0; bottom: 0; height: 3px; width: 100%; background: linear-gradient(90deg, #f0445f, #ff8fab); transform-origin: left; transition: transform 0.3s linear; }
-
+      #ytmr-up-next.show { opacity: 1; transform: translate(-50%, 0) scale(1); pointer-events: auto; }
+      #ytmr-up-next .glow { position: absolute; inset: -30px; z-index: -1; width: calc(100% + 60px); height: calc(100% + 60px); object-fit: cover; filter: blur(30px) saturate(1.8); opacity: 0.35; }
+      #ytmr-up-next .art { position: relative; flex: none; width: 48px; height: 48px; display: grid; place-items: center; }
+      #ytmr-up-next .art img { width: 40px; height: 40px; border-radius: 50%; object-fit: cover; box-shadow: 0 4px 14px rgba(0, 0, 0, 0.4); }
+      #ytmr-up-next .ring { position: absolute; inset: 0; transform: rotate(-90deg); }
+      #ytmr-up-next .ring circle { fill: none; stroke: rgba(255, 255, 255, 0.14); stroke-width: 2.5; }
+      #ytmr-up-next .ring .fill { stroke: #fff; stroke-linecap: round; transition: stroke-dashoffset 0.3s linear; }
+      #ytmr-up-next .text { min-width: 0; display: grid; gap: 1px; padding-right: 4px; }
+      #ytmr-up-next .label { font-size: 10.5px; font-weight: 700; letter-spacing: 1.2px; text-transform: uppercase; color: rgba(255, 255, 255, 0.55); }
+      #ytmr-up-next .label span { margin-left: 6px; letter-spacing: 0; text-transform: none; font-weight: 600; font-variant-numeric: tabular-nums; color: rgba(255, 255, 255, 0.8); }
+      #ytmr-up-next .title { font-size: 14px; font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+      #ytmr-up-next .artist { font-size: 12.5px; color: rgba(255, 255, 255, 0.62); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+      #ytmr-up-next button { flex: none; display: grid; place-items: center; border: 0; border-radius: 50%; cursor: pointer; }
+      #ytmr-up-next button svg { fill: currentColor; }
+      #ytmr-up-next .play { width: 40px; height: 40px; background: #fff; color: #000; transition: transform 0.15s ease; }
+      #ytmr-up-next .play:hover { transform: scale(1.07); }
+      #ytmr-up-next .dismiss { width: 28px; height: 28px; margin-left: -4px; background: none; color: rgba(255, 255, 255, 0.55); }
+      #ytmr-up-next .dismiss:hover { color: #fff; background: rgba(255, 255, 255, 0.1); }
       @media (prefers-reduced-motion: reduce) {
         ytmusic-section-list-renderer > #contents > *, ytmusic-responsive-header-renderer, ytmusic-immersive-header-renderer,
         ytmusic-detail-header-renderer, ytmusic-editable-playlist-detail-header-renderer, ytmusic-tabbed-search-results-renderer { animation: none; }
-        #ytmr-up-next { transition: opacity 0.2s; transform: none; }
+        #ytmr-up-next { transition: opacity 0.2s; transform: translate(-50%, 0); }
       }
     `;
     document.head.appendChild(css);
@@ -436,6 +456,7 @@
       if (event.playertype !== 1 || (event.type !== "dataloaded" && event.type !== "dataupdated")) return;
       const videoDetails = playerApi().getPlayerResponse().videoDetails;
       audio.onTrack(videoDetails.videoId);
+      audio.refreshArt();
       let album = null;
       let hasFullMetadata = false;
       const currentItem = playerBar().currentItem;
@@ -616,10 +637,49 @@
     watchPlayer(player) {
       if (this.watched === player) return;
       this.watched = player;
-      new MutationObserver(() => {
+      const ensure = () => {
         const img = document.getElementById("ytmr-art");
         if (!img || img.parentNode !== player) this.applyArt();
+        if (document.getElementById("ytmr-mini-close")?.parentNode !== player) {
+          const close = document.createElement("button");
+          close.id = "ytmr-mini-close";
+          close.title = "Close track";
+          close.appendChild(svgIcon("close", 16));
+          close.addEventListener("click", (e) => {
+            e.stopPropagation();
+            invoke("ytm_window_action", { action: "closeTrack" });
+          });
+          document.getElementById("ytmr-mini-close")?.remove();
+          player.appendChild(close);
+        }
+      };
+      // The app shows the YTM page over its own pages only while the player page is open.
+      let reportedPage = null;
+      const reportPage = () => {
+        const state = player.getAttribute("player-ui-state");
+        // Playing from the app's pages opens the player page, as clicking a track in YTM
+        // does; it is put away again so playback starts in place.
+        if (state === "PLAYER_PAGE_OPEN" && Date.now() < quietPlayUntil) {
+          quietPlayUntil = 0;
+          exec("togglePlayerPage");
+          return;
+        }
+        const open = state === "PLAYER_PAGE_OPEN" || state === "FULLSCREEN";
+        if (open !== reportedPage) {
+          reportedPage = open;
+          invoke("ytm_player_page", { open });
+        }
+      };
+      ensure();
+      reportPage();
+      new MutationObserver(() => {
+        ensure();
+        reportPage();
       }).observe(player, { childList: true, attributes: true, attributeFilter: ["player-ui-state"] });
+    },
+    // Called on every video data change: the thumbnails can arrive after the track starts.
+    refreshArt() {
+      if (this.config && !this.config.showVideos) this.applyArt();
     },
     // With videos off the player area shows the track's artwork, also for tracks that only
     // exist as a video. The queue item's thumbnail replaces the response's one on track
@@ -647,8 +707,24 @@
         img.alt = "";
         player.appendChild(img);
       }
-      if (art) img.src = art;
-      else img.removeAttribute("src");
+      if (!art) return img.removeAttribute("src");
+      if (img.dataset.base === art) return;
+      img.dataset.base = art;
+      img.src = art;
+      // Video thumbnails come sized down (e.g. hq720.jpg?sqp=... is 853x479). The largest
+      // version replaces it once loaded; a missing one is a 404 or YouTube's 120px placeholder.
+      const video = art.match(/^https:\/\/i\.ytimg\.com\/vi(?:_webp)?\/([\w-]+)\//);
+      if (!video) return;
+      const candidates = [`https://i.ytimg.com/vi/${video[1]}/maxresdefault.jpg`, `https://i.ytimg.com/vi/${video[1]}/hq720.jpg`];
+      const tryNext = () => {
+        const url = candidates.shift();
+        if (!url || img.dataset.base !== art) return;
+        const probe = new Image();
+        probe.onload = () => (probe.naturalWidth > 120 ? img.dataset.base === art && (img.src = url) : tryNext());
+        probe.onerror = tryNext;
+        probe.src = url;
+      };
+      tryNext();
     },
     // Media can be routed through Web Audio only once, so the graph is created on first
     // need and kept; neutral settings make it a pass-through.
@@ -703,8 +779,10 @@
       g.fade.gain.setTargetAtTime(level, g.ctx.currentTime, 0.06);
     }
   };
-  // --- Up next: a card announcing the next track during the last seconds of the current one.
+  // --- Up next: announces the next track during the last seconds of the current one.
   const UP_NEXT_SECONDS = 15;
+  // Circumference of the countdown ring (r = 21 in a 48px box).
+  const UP_NEXT_RING = 2 * Math.PI * 21;
   const upNext = {
     el: null,
     shownFor: "",
@@ -721,42 +799,65 @@
       return renderer(items[i + 1]) || renderer(queue.automixItems?.[0]) || (queue.repeatMode === "ALL" ? renderer(items[0]) : null);
     },
     build() {
+      const ns = "http://www.w3.org/2000/svg";
       const el = document.createElement("div");
       el.id = "ytmr-up-next";
+      const glow = document.createElement("img");
+      glow.className = "glow";
+      glow.alt = "";
+      const art = document.createElement("div");
+      art.className = "art";
       const img = document.createElement("img");
       img.alt = "";
+      const ring = document.createElementNS(ns, "svg");
+      ring.setAttribute("class", "ring");
+      ring.setAttribute("viewBox", "0 0 48 48");
+      for (const cls of ["", "fill"]) {
+        const c = document.createElementNS(ns, "circle");
+        c.setAttribute("cx", "24");
+        c.setAttribute("cy", "24");
+        c.setAttribute("r", "21");
+        if (cls) {
+          c.setAttribute("class", cls);
+          c.setAttribute("stroke-dasharray", String(UP_NEXT_RING));
+        }
+        ring.appendChild(c);
+      }
+      art.append(img, ring);
       const text = document.createElement("div");
       text.className = "text";
-      for (const cls of ["label", "title", "artist"]) {
-        const span = document.createElement("span");
-        span.className = cls;
-        text.appendChild(span);
-      }
-      const actions = document.createElement("div");
-      actions.className = "actions";
-      const button = (cls, title, icon, onclick) => {
+      const label = document.createElement("div");
+      label.className = "label";
+      label.append("Up next", document.createElement("span"));
+      const title = document.createElement("div");
+      title.className = "title";
+      const artist = document.createElement("div");
+      artist.className = "artist";
+      text.append(label, title, artist);
+      const button = (cls, tip, icon, size, onclick) => {
         const b = document.createElement("button");
         b.className = cls;
-        b.title = title;
-        b.appendChild(svgIcon(icon, 18));
+        b.title = tip;
+        b.appendChild(svgIcon(icon, size));
         b.addEventListener("click", onclick);
         return b;
       };
-      actions.append(
-        button("play", "Play now", "skipNext", () => {
+      el.append(
+        glow,
+        art,
+        text,
+        button("play", "Play now", "skipNext", 20, () => {
           this.hide();
           playerApi().nextVideo();
         }),
-        button("", "Dismiss", "close", () => {
+        button("dismiss", "Dismiss", "close", 16, () => {
           this.dismissed = playerApi().getPlayerResponse()?.videoDetails?.videoId ?? "";
           this.hide();
         })
       );
-      const countdown = document.createElement("span");
-      countdown.className = "countdown";
-      el.append(img, text, actions, countdown);
       document.body.appendChild(el);
       this.el = el;
+      this.parts = { glow, img, fill: ring.lastChild, secs: label.lastChild, title, artist };
     },
     hide() {
       this.el?.classList.remove("show");
@@ -770,18 +871,19 @@
       const next = this.next();
       if (!next) return this.hide();
       if (!this.el) this.build();
+      const p = this.parts;
       const key = id + next.videoId;
       if (this.shownFor !== key) {
         this.shownFor = key;
         const thumbs = next.thumbnail?.thumbnails ?? [];
-        const [img, text] = this.el.children;
-        img.src = thumbs[thumbs.length - 1]?.url ?? "";
+        const src = thumbs[thumbs.length - 1]?.url ?? "";
+        p.img.src = p.glow.src = src;
         const runs = (v) => v?.runs?.map((r) => r.text).join("") ?? "";
-        text.children[1].textContent = runs(next.title);
-        text.children[2].textContent = runs(next.shortBylineText);
+        p.title.textContent = runs(next.title);
+        p.artist.textContent = runs(next.shortBylineText);
       }
-      this.el.children[1].children[0].textContent = `Up next · ${Math.ceil(left)}s`;
-      this.el.lastChild.style.transform = `scaleX(${left / UP_NEXT_SECONDS})`;
+      p.secs.textContent = `${Math.ceil(left)}s`;
+      p.fill.setAttribute("stroke-dashoffset", String(UP_NEXT_RING * (1 - left / UP_NEXT_SECONDS)));
       this.el.classList.add("show");
     }
   };
@@ -1089,6 +1191,20 @@
     setAdBlock: (on) => (adblock.enabled = on),
     navigateHome: () => navigate({ browseEndpoint: { browseId: "FEmusic_home" } }),
     exitFullscreen: () => document.fullscreenElement && document.exitFullscreen(),
+    // Stops the track, empties the queue and puts YTM's player away (its bar, page or
+    // floating mini player), leaving nothing playing.
+    closeTrack: () => {
+      if (document.fullscreenElement) document.exitFullscreen();
+      playerApi().stopVideo();
+      ytmStore().dispatch({ type: "CLEAR" });
+      ytmStore().dispatch({ type: "SET_PLAYER_UI_STATE", payload: "INACTIVE" });
+    },
+    playQuietly: (endpoint) => {
+      // Only a player page that was closed is put away again.
+      const open = document.querySelector("ytmusic-player")?.getAttribute("player-ui-state") === "PLAYER_PAGE_OPEN";
+      quietPlayUntil = open ? 0 : Date.now() + 5000;
+      navigate(endpoint);
+    },
     focusSearch: () => document.querySelector("ytmusic-search-box input")?.focus(),
     setAudio: (config) => audio.set(config),
     // Replaced once the window controls exist.
@@ -1105,6 +1221,10 @@
   const ipcReady = waitFor(() => window.__TAURI_INTERNALS__);
   // Requested early so the round trip overlaps page loading.
   const configPromise = ipcReady.then(() => invoke("ytm_get_config"));
+  // The app's own pages call YTM's API with the same client YTM's page runs.
+  ipcReady
+    .then(() => waitFor(() => window.ytcfg?.get?.("INNERTUBE_CONTEXT")?.client))
+    .then(() => invoke("ytm_innertube", { client: window.ytcfg.get("INNERTUBE_CONTEXT").client }));
   if (window.__YTMR_THEME__) waitFor(() => document.documentElement).then(() => setModernUi(window.__YTMR_THEME__));
   // Casting is unsupported. YTM's cast button is hidden from the first paint rather than
   // once the player is ready, so it never shows while the page loads.
@@ -1140,6 +1260,9 @@
     const historyButton = document.querySelector("#history-link .history-button");
     if (historyButton) historyButton.style = "display: inline-block !important;";
 
+    // A resumed watch page opens YTM's player page; with the app's own pages it stays away
+    // until asked for, like a quiet play.
+    if (config.nativeBrowse) quietPlayUntil = Date.now() + 8000;
     continueWhereYouLeftOff(config);
     setVolumeSliderPersist(config.alwaysShowVolumeSlider);
     if (config.ratioVolume) ratioVolume.enable();

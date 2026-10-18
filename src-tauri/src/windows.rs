@@ -154,8 +154,18 @@ pub fn layout_main(app: &AppHandle) {
     let bottom = if ctx.settings.get().appearance.modern_ui { PLAYER_BAR_HEIGHT } else { 0.0 };
     let _ = view.set_position(LogicalPosition::new(0.0, top));
     let _ = view.set_size(LogicalSize::new(size.width, (size.height - top - bottom).max(1.0)));
-    let (loading, covered) = ctx.memory.read(|m| (m.ytm_view_loading, (m.now_playing_open || m.tour_open) && !video));
-    let _ = if loading || covered { view.hide() } else { view.show() };
+    let (loading, covered, player_page, foreign) =
+        ctx.memory.read(|m| (m.ytm_view_loading, (m.now_playing_open || m.tour_open) && !video, m.ytm_player_page, m.ytm_foreign_page));
+    // With native browsing the app draws the pages; the YTM page shows only for its player
+    // page, video fullscreen, or a sign-in page.
+    let shown = if native_browse(app) { player_page || foreign || video } else { !loading };
+    let _ = if !shown || covered { view.hide() } else { view.show() };
+}
+
+/// The app draws YouTube Music's pages itself. Needs the app's own player bar (Modern UI).
+pub fn native_browse(app: &AppHandle) -> bool {
+    let s = app_ctx(app).settings.get();
+    s.appearance.modern_ui && s.appearance.native_browse
 }
 
 fn apply_fullscreen(app: &AppHandle) {

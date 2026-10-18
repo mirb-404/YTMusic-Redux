@@ -5,6 +5,7 @@ mod integrations;
 mod keyboard;
 mod lyrics;
 mod memory;
+mod music;
 mod plugins_menu;
 mod player;
 mod settings;
@@ -232,6 +233,16 @@ pub fn run() {
             commands::app_info,
             keyboard::keyboard_bindings,
             keyboard::keyboard_action,
+            music::music_browse,
+            music::music_search,
+            music::music_continue,
+            music::music_suggestions,
+            music::music_guide,
+            music::music_signed_in,
+            music::music_play,
+            music::music_sign_in,
+            ytm::bridge::ytm_innertube,
+            ytm::bridge::ytm_player_page,
         ])
         .build(tauri::generate_context!())
         .expect("error while building tauri application")

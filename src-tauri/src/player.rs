@@ -247,6 +247,17 @@ impl PlayerStore {
         });
     }
 
+    /// Nothing playing: the track closed and the queue emptied.
+    pub fn clear_video(&self) {
+        self.modify(|s| {
+            s.video = None;
+            s.playlist_id = None;
+            s.player.video_progress = 0.0;
+            s.player.track_state = TrackState::Unknown;
+            s.player.queue = None;
+        });
+    }
+
     pub fn update_video(&self, details: &Value, playlist_id: Option<String>, album: Option<&Value>, like: Option<&str>, full: bool) {
         let video = Video {
             author: str_of(details, "author"),

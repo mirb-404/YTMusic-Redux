@@ -180,6 +180,14 @@
                 <Row title="Modern UI" description="App player bar with wave seek line and a flat dark YouTube Music theme">
                   <Toggle label="Modern UI" checked={s.appearance.modernUi} onchange={(v) => set("appearance.modernUi", v)} />
                 </Row>
+                {#if s.appearance.modernUi}
+                  <Row title="Native pages" description="The app draws YouTube Music's pages itself, for instant navigation; off shows YouTube Music's own website" nested>
+                    <Toggle label="Native pages" checked={s.appearance.nativeBrowse} onchange={(v) => set("appearance.nativeBrowse", v)} />
+                  </Row>
+                  <Row title="Tinted player bar" description="Colors the player bar from the playing track's artwork; off keeps the plain dark bar" nested>
+                    <Toggle label="Tinted player bar" checked={s.appearance.tintedPlayerBar} onchange={(v) => set("appearance.tintedPlayerBar", v)} />
+                  </Row>
+                {/if}
                 <Row title="Always show volume slider">
                   <Toggle label="Always show volume slider" checked={s.appearance.alwaysShowVolumeSlider} onchange={(v) => set("appearance.alwaysShowVolumeSlider", v)} />
                 </Row>

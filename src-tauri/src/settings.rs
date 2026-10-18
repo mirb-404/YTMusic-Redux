@@ -33,6 +33,11 @@ pub struct General {
 pub struct Appearance {
     /// App-rendered player bar with wave seek line plus the restyled YTM theme.
     pub modern_ui: bool,
+    /// The player bar is tinted by the playing track's artwork; off is the plain dark bar.
+    pub tinted_player_bar: bool,
+    /// The app draws YouTube Music's pages itself (with Modern UI); the YTM page only plays
+    /// and shows its player page. Off shows YTM's own pages.
+    pub native_browse: bool,
     pub always_show_volume_slider: bool,
     pub custom_css_enabled: bool,
     pub custom_css_path: Option<String>,
@@ -44,6 +49,8 @@ impl Default for Appearance {
     fn default() -> Self {
         Self {
             modern_ui: true,
+            tinted_player_bar: true,
+            native_browse: true,
             always_show_volume_slider: false,
             custom_css_enabled: false,
             custom_css_path: None,

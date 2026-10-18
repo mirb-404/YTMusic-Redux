@@ -34,6 +34,7 @@ pub const BINDINGS: &[Binding] = &[
     bind(&["Shift+L"], "toggleDislike", "Dislike"),
     bind(&["S"], "shuffle", "Shuffle"),
     bind(&["R"], "repeat", "Repeat off / all / one"),
+    bind(&["Ctrl+Shift+X"], "closeTrack", "Close the track (stop and clear the queue)"),
     bind(&["Y"], "lyrics", "Lyrics"),
     bind(&["Q"], "queue", "Player page and queue"),
     bind(&["V"], "video", "Music videos / audio only"),
@@ -66,6 +67,17 @@ pub async fn keyboard_action(app: AppHandle, webview: Webview, action: String) -
     let ctx = app_ctx(&app);
     let state = ctx.player.get();
     let browse = |id: &str| ytm::call(&app, "exec", &[json!("navigate"), json!({ "browseEndpoint": { "browseId": id } })]);
+    // With native browsing the app's own pages handle navigation and search.
+    if windows::native_browse(&app) && matches!(action.as_str(), "search" | "home" | "explore" | "library" | "back" | "forward") {
+        use tauri::Emitter;
+        windows::set_now_playing_open(&app, false);
+        if ctx.memory.read(|m| m.ytm_player_page) {
+            ytm::call(&app, "togglePlayerPage", &[]);
+        }
+        focus(&app, windows::SHELL);
+        let _ = app.emit_to(tauri::EventTarget::webview(windows::SHELL), "browse-action", &action);
+        return Ok(());
+    }
     match action.as_str() {
         "mute" => ytm::execute(&app, if state.player.muted { &ytm::Command::Unmute } else { &ytm::Command::Mute }),
         "seekForward" | "seekBack" => {
@@ -83,6 +95,7 @@ pub async fn keyboard_action(app: AppHandle, webview: Webview, action: String) -
             };
             ytm::execute(&app, &ytm::Command::RepeatMode(next));
         }
+        "closeTrack" => ytm::close_track(&app),
         "lyrics" => windows::set_now_playing_open(&app, !ctx.memory.read(|m| m.now_playing_open)),
         "queue" => {
             windows::set_now_playing_open(&app, false);
@@ -134,7 +147,7 @@ mod tests {
     #[test]
     fn plain_actions_are_player_commands() {
         let app_actions = [
-            "mute", "seekForward", "seekBack", "repeat", "lyrics", "queue", "video", "fullscreen", "mini", "search", "home", "explore",
+            "mute", "seekForward", "seekBack", "repeat", "closeTrack", "lyrics", "queue", "video", "fullscreen", "mini", "search", "home", "explore",
             "library", "back", "forward", "switchFocus", "settings", "help",
         ];
         for b in BINDINGS.iter().filter(|b| !app_actions.contains(&b.action)) {

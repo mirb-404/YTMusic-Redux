@@ -27,6 +27,12 @@ pub struct Memory {
     pub ytm_owns_header: bool,
     /// The first-start tour of the app's controls covers the YTM view.
     pub tour_open: bool,
+    /// YTM's player page (video, queue) is open; with native browsing it is the only time
+    /// the YTM page is shown.
+    pub ytm_player_page: bool,
+    /// The YTM view shows a page that is not YouTube Music (sign-in, consent), which needs
+    /// the user.
+    pub ytm_foreign_page: bool,
 }
 
 pub struct MemoryStore {

@@ -15,6 +15,8 @@ permissions = [
   "allow-ytm-fullscreen",
   "allow-ytm-toggle-fullscreen",
   "allow-ytm-window-action",
+  "allow-ytm-innertube",
+  "allow-ytm-player-page",
   "allow-keyboard-bindings",
   "allow-keyboard-action"
 ]
@@ -50,6 +52,14 @@ permissions = [
   "allow-lastfm-sign-out",
   "allow-pick-css-file",
   "allow-app-info",
+  "allow-music-browse",
+  "allow-music-search",
+  "allow-music-continue",
+  "allow-music-suggestions",
+  "allow-music-guide",
+  "allow-music-signed-in",
+  "allow-music-play",
+  "allow-music-sign-in",
   "allow-keyboard-bindings",
   "allow-keyboard-action"
 ]

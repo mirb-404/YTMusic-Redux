@@ -12,8 +12,9 @@
     memory,
     clock,
     showVideos,
-    fullscreen
-  }: { player: PlayerState | null; memory: Memory | null; clock: ProgressClock; showVideos: boolean; fullscreen: boolean } = $props();
+    fullscreen,
+    tinted
+  }: { player: PlayerState | null; memory: Memory | null; clock: ProgressClock; showVideos: boolean; fullscreen: boolean; tinted: boolean } = $props();
 
   const video = $derived(player?.video ?? null);
   const playing = $derived(player?.player.trackState === 1);
@@ -74,12 +75,19 @@
   const sleepOptions = [5, 10, 15, 30, 45, 60, 90];
 </script>
 
-<footer class="bar">
+<footer class="bar" class:tinted>
+  <!-- The artwork, blurred, tints the bar in the track's colors. -->
+  {#if tinted && art}{#key art}<img class="tint" src={art} alt="" aria-hidden="true" transition:fade={{ duration: 700 }} />{/key}{/if}
   <section class="track">
-    <button class="art" data-tour="art" title="Now playing" disabled={!video} onclick={() => api.command("togglePlayerPage")}>
-      {#if art}{#key art}<img src={art} alt="" in:fade={{ duration: 220 }} />{/key}{:else}<Icon name="music" size={22} />{/if}
-      <span class="overlay"><Icon name="expand" size={18} /></span>
-    </button>
+    <div class="art-wrap">
+      <button class="art" data-tour="art" title="Now playing" disabled={!video} onclick={() => api.command("togglePlayerPage")}>
+        {#if art}{#key art}<img src={art} alt="" in:fade={{ duration: 220 }} />{/key}{:else}<Icon name="music" size={22} />{/if}
+        <span class="overlay"><Icon name="expand" size={18} /></span>
+      </button>
+      {#if video}
+        <button class="close-track" title="Close track (Ctrl+Shift+X)" onclick={() => api.command("closeTrack")}><Icon name="close" size={12} /></button>
+      {/if}
+    </div>
     <div class="meta">
       <div class="title" title={video?.title}>
         {#if adPlaying}<span class="ad">Ad</span>{/if}{video?.title ?? "Nothing playing"}
@@ -180,12 +188,26 @@
     align-items: center;
     gap: 24px;
     padding: 0 16px;
+    position: relative;
+    isolation: isolate;
+    overflow: hidden;
     background: var(--bg);
     border-top: 1px solid var(--border);
+  }
+  /* Slightly see-through over the tint layer below. */
+  .bar.tinted { background: color-mix(in srgb, var(--bg) 78%, transparent); }
+  .tint {
+    position: absolute; inset: -60px; z-index: -1;
+    width: calc(100% + 120px); height: calc(100% + 120px);
+    object-fit: cover;
+    filter: blur(50px) saturate(1.7);
+    opacity: 0.32;
+    pointer-events: none;
   }
   section { position: relative; min-width: 0; }
 
   .track { display: flex; align-items: center; gap: 12px; }
+  .art-wrap { position: relative; flex: none; }
   .art {
     position: relative;
     width: 56px; height: 56px; flex: none;
@@ -202,6 +224,18 @@
     opacity: 0; transition: opacity 0.15s var(--ease);
   }
   .art:not(:disabled):hover .overlay { opacity: 1; }
+  .close-track {
+    position: absolute; top: -6px; right: -6px; z-index: 1;
+    width: 20px; height: 20px; border-radius: 50%;
+    display: grid; place-items: center;
+    background: var(--bg-elevated); color: var(--text-muted);
+    border: 1px solid var(--border);
+    box-shadow: 0 2px 6px rgba(0, 0, 0, 0.4);
+    opacity: 0; transform: scale(0.8);
+    transition: opacity 0.15s var(--ease), transform 0.15s var(--ease), color 0.15s, background 0.15s;
+  }
+  .track:hover .close-track, .close-track:focus-visible { opacity: 1; transform: none; }
+  .close-track:hover { color: #fff; background: var(--danger); border-color: transparent; }
   .meta { min-width: 0; flex: 0 1 auto; }
   .title { font-weight: 600; font-size: 14px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
   .sub { color: var(--text-muted); font-size: 12.5px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; margin-top: 2px; }

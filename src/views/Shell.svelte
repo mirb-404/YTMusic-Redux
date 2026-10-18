@@ -8,6 +8,8 @@
   import NowPlaying from "../components/NowPlaying.svelte";
   import PlayerBar from "../components/PlayerBar.svelte";
   import Tour from "../components/Tour.svelte";
+  import Browser from "../components/browse/Browser.svelte";
+  import { nowPlaying } from "../lib/music.svelte";
   import { keyboardControls } from "../lib/keyboard";
   import { api, bestThumbnail, onMemory, onPlayerState, onSettings, type Memory, type PlayerState, type Settings } from "../lib/api";
   import { LyricsTrack } from "../lib/lyrics.svelte";
@@ -20,17 +22,22 @@
   let fullscreen = $state(false);
   let devTools = $state(false);
   let modernUi = $state(true);
+  let tintedBar = $state(true);
+  let nativeBrowse = $state(true);
   let showVideos = $state(true);
 
   const clock = new ProgressClock();
   const lyrics = new LyricsTrack();
   const nowPlayingOpen = $derived(memory?.nowPlayingOpen ?? false);
+  // The app draws YouTube Music's pages itself; the YTM page only plays and shows its
+  // player page over them.
+  const native = $derived(modernUi && nativeBrowse);
   // YTM's header carries the window controls whenever it is on screen: one header, not two.
   // It stays in fullscreen, where its window buttons give way to an exit button.
   const tourOpen = $derived(memory?.tourOpen ?? false);
   // The tour also hides the YTM view, and points at controls in this title bar.
   // The now playing view carries the window controls in its own header instead.
-  const showTitleBar = $derived(tourOpen || !memory?.ytmOwnsHeader);
+  const showTitleBar = $derived(!native && (tourOpen || !memory?.ytmOwnsHeader));
   // A fullscreen window has nothing to drag or maximize.
   const drag = $derived(fullscreen ? undefined : true);
 
@@ -44,6 +51,8 @@
   function applySettings(s: Settings) {
     devTools = s.developer.enableDevTools;
     modernUi = s.appearance.modernUi;
+    tintedBar = s.appearance.tintedPlayerBar;
+    nativeBrowse = s.appearance.nativeBrowse;
     showVideos = s.playback.showVideos;
   }
 
@@ -54,6 +63,20 @@
   // The clock only needs frames while time advances.
   $effect(() => {
     if (playing) return clock.start();
+  });
+
+  $effect(() => {
+    nowPlaying.id = video?.id ?? "";
+    nowPlaying.playing = playing;
+  });
+
+  // Leaving a sign-in page back to YouTube Music changes the session the pages use.
+  let session = $state(0);
+  let wasForeign = false;
+  $effect(() => {
+    const foreign = memory?.ytmForeignPage ?? false;
+    if (wasForeign && !foreign) session++;
+    wasForeign = foreign;
   });
 
   // Lyrics are only fetched while something shows them.
@@ -153,14 +176,33 @@
       <button class="win-btn close" title="Close" onclick={() => appWindow.close()}><Icon name="close" size={16} /></button>
   {/snippet}
 
-  {#if nowPlayingOpen}
+  {#if native}
+    <!-- Kept mounted under the lyrics view, so pages keep their place. -->
+    <div class="native">
+      <Browser controls={windowControls} {drag} {session} />
+      {#if nowPlayingOpen}
+        <div class="layer overlay" in:fly={{ y: 28, duration: 260, easing: cubicOut }} out:fade={{ duration: 140 }}>
+          <NowPlaying
+            {player}
+            {lyrics}
+            {lineIndex}
+            controls={windowControls}
+            {drag}
+            onclose={() => api.setNowPlayingOpen(false)}
+            onseek={(t) => {
+              clock.sync(t);
+              api.command("seekTo", t);
+            }}
+          />
+        </div>
+      {/if}
+    </div>
+  {:else if nowPlayingOpen}
     <div class="layer" in:fly={{ y: 28, duration: 260, easing: cubicOut }} out:fade={{ duration: 140 }}>
     <NowPlaying
       {player}
       {lyrics}
       {lineIndex}
-      {elapsed}
-      {showVideos}
       controls={showTitleBar ? undefined : windowControls}
       {drag}
       onclose={() => api.setNowPlayingOpen(false)}
@@ -209,7 +251,7 @@
   {/if}
 
   {#if modernUi}
-    <PlayerBar {player} {memory} {clock} {showVideos} {fullscreen} />
+    <PlayerBar {player} {memory} {clock} {showVideos} {fullscreen} tinted={tintedBar} />
   {/if}
 
   {#if tourOpen}
@@ -282,6 +324,8 @@
   .win-btn.close:hover { background: #c42b1c; color: #fff; }
 
   .ytm-slot { flex: 1; }
+  .native { position: relative; flex: 1; min-height: 0; display: flex; flex-direction: column; }
+  .overlay { position: absolute; inset: 0; z-index: 10; }
   .layer { flex: 1; min-height: 0; display: flex; }
   .loader {
     flex: 1; min-height: 0;

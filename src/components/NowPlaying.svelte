@@ -1,17 +1,13 @@
 <script lang="ts">
   import type { Snippet } from "svelte";
-  import { fly } from "svelte/transition";
-  import { cubicOut } from "svelte/easing";
   import Icon from "./Icon.svelte";
-  import { api, bestThumbnail, type PlayerState } from "../lib/api";
+  import { bestThumbnail, type PlayerState } from "../lib/api";
   import type { LyricsTrack } from "../lib/lyrics.svelte";
 
   let {
     player,
     lyrics,
     lineIndex,
-    elapsed,
-    showVideos,
     controls,
     drag,
     onclose,
@@ -20,8 +16,6 @@
     player: PlayerState | null;
     lyrics: LyricsTrack;
     lineIndex: number;
-    elapsed: number;
-    showVideos: boolean;
     /** Window controls, when this view is the window's only header. */
     controls?: Snippet;
     drag?: boolean;
@@ -32,19 +26,6 @@
   const video = $derived(player?.video ?? null);
   const art = $derived(bestThumbnail(video?.thumbnails, 544));
   const synced = $derived(lyrics.data?.synced ?? null);
-
-  // The next track is announced during the last seconds of the current one.
-  const UP_NEXT_SECONDS = 15;
-  const upNext = $derived.by(() => {
-    const q = player?.player.queue;
-    if (!q || q.repeatMode === 2 || q.selectedItemIndex < 0) return null;
-    return q.items[q.selectedItemIndex + 1] ?? q.automixItems[0] ?? (q.repeatMode === 1 ? q.items[0] : null) ?? null;
-  });
-  const left = $derived(video ? video.durationSeconds - elapsed : Infinity);
-  let dismissed = $state("");
-  const showUpNext = $derived(
-    !!upNext && !!video && !video.isLive && video.durationSeconds > UP_NEXT_SECONDS * 3 && left > 0.5 && left <= UP_NEXT_SECONDS && dismissed !== video.id
-  );
 
   // Each track gets its own vibrant palette, picked from its id, for the lyric colors and the
   // light drifting behind them.
@@ -81,10 +62,6 @@
     <button class="icon-btn" title="Close (Esc)" onclick={onclose}><Icon name="chevronDown" size={22} /></button>
     <span class="label" data-tauri-drag-region={controls ? drag : undefined}>Now playing</span>
     <span class="push" data-tauri-drag-region={controls ? drag : undefined}></span>
-    <button class="chip" class:on={showVideos} title={showVideos ? "Playing music videos" : "Playing audio only"} onclick={() => api.setSetting("playback.showVideos", !showVideos)}>
-      <Icon name={showVideos ? "video" : "videoOff"} size={16} />{showVideos ? "Video" : "Audio only"}
-    </button>
-    <button class="chip" title="Equalizer and playback" onclick={() => api.openSettings("audio")}><Icon name="equalizer" size={16} />Audio</button>
     {#if controls}<div class="controls">{@render controls()}</div>{/if}
   </header>
 
@@ -128,20 +105,6 @@
       {#if lyrics.data}<p class="credit">Lyrics from LRCLIB</p>{/if}
     </section>
   </div>
-
-  {#if showUpNext && upNext}
-    <aside class="up-next" in:fly={{ y: 24, duration: 380, easing: cubicOut }} out:fly={{ y: 16, duration: 200 }}>
-      {#if bestThumbnail(upNext.thumbnails, 120)}<img src={bestThumbnail(upNext.thumbnails, 120)} alt="" />{/if}
-      <div class="next-text">
-        <span class="next-label">Up next · {Math.ceil(left)}s</span>
-        <span class="next-title">{upNext.title}</span>
-        <span class="next-artist">{upNext.author}</span>
-      </div>
-      <button class="icon-btn play" title="Play now" onclick={() => api.command("next")}><Icon name="next" size={18} /></button>
-      <button class="icon-btn" title="Dismiss" onclick={() => (dismissed = video?.id ?? "")}><Icon name="close" size={16} /></button>
-      <span class="countdown" style:transform="scaleX({left / UP_NEXT_SECONDS})"></span>
-    </aside>
-  {/if}
 </main>
 
 <style>
@@ -169,15 +132,6 @@
   .controls { align-self: flex-start; display: flex; align-items: center; gap: 2px; margin: -12px 0 0 8px; }
   .label { font-size: 12px; font-weight: 700; letter-spacing: 0.6px; text-transform: uppercase; color: var(--text-muted); }
   .push { flex: 1; }
-  .chip {
-    display: inline-flex; align-items: center; gap: 6px;
-    height: 30px; padding: 0 12px; border-radius: 15px;
-    border: 1px solid var(--border); color: var(--text-muted);
-    font-size: 12.5px; font-weight: 600;
-    transition: background 0.12s, color 0.12s;
-  }
-  .chip:hover { background: var(--surface-hover); color: var(--text); }
-  .chip.on { background: var(--text); border-color: transparent; color: var(--bg); }
 
   .content {
     flex: 1; min-height: 0;
@@ -232,27 +186,6 @@
   .state { font-size: 20px; font-weight: 600; color: var(--text-muted); margin: 0 0 16px; }
   .credit { margin: 32px 0 0; font-size: 12px; color: var(--text-faint); }
 
-  .up-next {
-    position: absolute; left: 48px; bottom: 28px; width: min(360px, calc(100% - 96px));
-    display: grid; grid-template-columns: 56px 1fr auto auto; align-items: center; gap: 12px;
-    padding: 12px 12px 14px; border-radius: 14px; overflow: hidden;
-    background: color-mix(in srgb, var(--surface) 85%, transparent);
-    border: 1px solid var(--border);
-    box-shadow: 0 18px 48px rgba(0, 0, 0, 0.45), 0 0 40px color-mix(in srgb, var(--c1) 18%, transparent);
-    backdrop-filter: blur(18px);
-  }
-  .up-next img { width: 56px; height: 56px; border-radius: 8px; object-fit: cover; }
-  .next-text { min-width: 0; display: grid; gap: 2px; }
-  .next-label { font-size: 11px; font-weight: 700; letter-spacing: 0.6px; text-transform: uppercase; color: var(--c1); }
-  .next-title { font-weight: 600; font-size: 14px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-  .next-artist { font-size: 13px; color: var(--text-muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-  .up-next .play { background: var(--text); color: var(--bg); border-radius: 50%; }
-  .up-next .play:hover { background: var(--text-muted); color: var(--bg); }
-  .countdown {
-    position: absolute; left: 0; bottom: 0; width: 100%; height: 3px;
-    background: linear-gradient(90deg, var(--c1), var(--c2));
-    transform-origin: left; transition: transform 0.3s linear;
-  }
 
   @media (max-width: 860px) {
     .content { grid-template-columns: 1fr; padding: 16px 20px 0; gap: 0; }

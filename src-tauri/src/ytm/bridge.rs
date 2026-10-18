@@ -38,6 +38,7 @@ pub fn ytm_get_config(webview: Webview, app: AppHandle) -> Result<BridgeConfig> 
         custom_css: crate::integrations::custom_css::current_css(&app),
         modern_css: super::modern_css(&app),
         audio: super::audio_config(&s),
+        native_browse: windows::native_browse(&app),
     })
 }
 
@@ -166,9 +167,30 @@ pub async fn ytm_window_action(webview: Webview, app: AppHandle, action: String)
         "settings" => windows::open_settings(&app, None),
         "mini" => windows::toggle_mini_player(&app),
         "plugins" => crate::plugins_menu::show(&app),
+        "closeTrack" => {
+            super::close_track(&app);
+            Ok(())
+        }
         _ => return Err("unknown window action".into()),
     };
     result.map_err(|e| e.to_string())
+}
+
+/// YTM's player page opened or closed.
+#[tauri::command]
+pub fn ytm_player_page(webview: Webview, app: AppHandle, open: bool) -> Result<()> {
+    ensure_ytm(&webview)?;
+    app_ctx(&app).memory.update(&app, |m| m.ytm_player_page = open);
+    windows::layout_main(&app);
+    Ok(())
+}
+
+/// The request context YTM's page runs with, so the app's own API calls match it.
+#[tauri::command]
+pub fn ytm_innertube(webview: Webview, client: Value) -> Result<()> {
+    ensure_ytm(&webview)?;
+    crate::music::set_client(&client);
+    Ok(())
 }
 
 /// F11 pressed while the YTM view has focus.

@@ -49,9 +49,13 @@ pub fn get_player_state(app: AppHandle) -> PlayerState {
 }
 
 /// Same command vocabulary and validation as the companion API `/command`, plus UI-only
-/// actions that open YTM's own player page and add-to-playlist dialog.
+/// actions that open YTM's own player page and add-to-playlist dialog, and close the track.
 #[tauri::command]
 pub fn player_command(app: AppHandle, command: String, data: Option<Value>) -> Result<()> {
+    if command == "closeTrack" {
+        ytm::close_track(&app);
+        return Ok(());
+    }
     if matches!(command.as_str(), "togglePlayerPage" | "addToPlaylist") {
         ytm::call(&app, &command, &[]);
         return Ok(());

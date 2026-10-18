@@ -12,6 +12,8 @@ const BRIDGE_COMMANDS: &[&str] = &[
     "ytm_fullscreen",
     "ytm_toggle_fullscreen",
     "ytm_window_action",
+    "ytm_innertube",
+    "ytm_player_page",
 ];
 
 const UI_COMMANDS: &[&str] = &[
@@ -42,6 +44,14 @@ const UI_COMMANDS: &[&str] = &[
     "lastfm_sign_out",
     "pick_css_file",
     "app_info",
+    "music_browse",
+    "music_search",
+    "music_continue",
+    "music_suggestions",
+    "music_guide",
+    "music_signed_in",
+    "music_play",
+    "music_sign_in",
 ];
 
 const AUTH_COMMANDS: &[&str] = &["companion_auth_info", "companion_auth_result"];

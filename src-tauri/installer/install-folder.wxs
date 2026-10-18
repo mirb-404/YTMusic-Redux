@@ -7,6 +7,14 @@
   <Fragment>
     <!-- Referenced from tauri.conf.json (componentGroupRefs) so this fragment gets linked. -->
     <ComponentGroup Id="YtmrInstallFolder" />
+    <!-- In the folder dialog, before its Next sets the target path: the installer UI then knows
+         the real location too, which the finish page's "Launch" checkbox starts the app from. -->
+    <UI>
+      <Publish Dialog="InstallDirDlg" Control="Next" Property="INSTALLDIR" Value="[INSTALLDIR]YTMusic Redux\" Order="0">
+        <![CDATA[NOT Installed AND NOT (INSTALLDIR ~>> "\YTMusic Redux\" OR INSTALLDIR ~>> "\YTMusic Redux")]]>
+      </Publish>
+    </UI>
+    <!-- Installs without the UI (msiexec /qn INSTALLDIR=...) get the same folder here. -->
     <SetDirectory Id="INSTALLDIR" Value="[INSTALLDIR]YTMusic Redux\" Sequence="execute">
       <![CDATA[NOT Installed AND NOT (INSTALLDIR ~>> "\YTMusic Redux\" OR INSTALLDIR ~>> "\YTMusic Redux")]]>
     </SetDirectory>

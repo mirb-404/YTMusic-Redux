@@ -79,6 +79,9 @@ pub fn apply(app: &AppHandle, old: Option<&Settings>, new: &Settings) {
             ytm::call(app, "setModernUi", &[css]);
             crate::windows::layout_main(app);
         }
+        if changed(|s| s.appearance.native_browse) {
+            crate::windows::layout_main(app);
+        }
         if changed(|s| s.playback.block_ads) {
             ytm::call(app, "setAdBlock", &[json!(new.playback.block_ads)]);
         }
