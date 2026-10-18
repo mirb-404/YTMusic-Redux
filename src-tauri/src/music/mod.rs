@@ -301,7 +301,8 @@ pub async fn music_create_playlist(
 #[tauri::command]
 pub fn music_play(app: AppHandle, endpoint: Value) -> Result<()> {
     let endpoint = watch_endpoint(&endpoint)?;
-    ytm::call(&app, "playQuietly", &[endpoint]);
+    let open = crate::app_ctx(&app).settings.get().playback.open_player_on_play;
+    ytm::call(&app, if open { "playOpen" } else { "playQuietly" }, &[endpoint]);
     Ok(())
 }
 

@@ -73,6 +73,9 @@ pub async fn keyboard_action(app: AppHandle, webview: Webview, action: String) -
         windows::set_now_playing_open(&app, false);
         if ctx.memory.read(|m| m.ytm_player_page) {
             ytm::call(&app, "togglePlayerPage", &[]);
+            if action == "back" {
+                return Ok(());
+            }
         }
         focus(&app, windows::SHELL);
         let _ = app.emit_to(tauri::EventTarget::webview(windows::SHELL), "browse-action", &action);

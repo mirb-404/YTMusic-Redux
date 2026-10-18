@@ -71,6 +71,9 @@ pub struct Playback {
     /// Plays music videos where they exist; off plays the audio-only song version and
     /// shows the artwork instead.
     pub show_videos: bool,
+    /// Playing a song from the app's pages opens the video view (video or artwork); off
+    /// keeps playback in the player bar.
+    pub open_player_on_play: bool,
     /// Playback speed in percent.
     pub playback_rate: u32,
     /// Seconds to fade out the end of a track and fade in the next; 0 turns it off.
@@ -106,6 +109,7 @@ impl Default for Playback {
             progress_in_taskbar: false,
             ratio_volume: false,
             show_videos: true,
+            open_player_on_play: true,
             playback_rate: 100,
             crossfade_seconds: 0,
             equalizer: Equalizer::default(),

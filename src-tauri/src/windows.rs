@@ -15,6 +15,9 @@ pub const MINI: &str = "mini";
 pub const AUTH_PREFIX: &str = "companion-auth-";
 /// Height of the custom title bar rendered by the shell webview, in logical pixels.
 pub const TITLE_BAR_HEIGHT: f64 = 40.0;
+/// Height of the native pages' top bar (back, search, window controls), which stays above
+/// the video view.
+pub const NATIVE_TOP_BAR_HEIGHT: f64 = 64.0;
 /// Height of the app-rendered player bar (Modern UI), in logical pixels.
 pub const PLAYER_BAR_HEIGHT: f64 = 88.0;
 /// The app's background (`--bg`). Window and webviews paint it before content arrives, so
@@ -150,7 +153,16 @@ pub fn layout_main(app: &AppHandle) {
     let ctx = app_ctx(app);
     let video = VIDEO_FULLSCREEN.load(Ordering::Relaxed);
     let owns_header = ctx.memory.read(|m| m.ytm_owns_header);
-    let top = if owns_header { 0.0 } else { TITLE_BAR_HEIGHT };
+    let native = native_browse(app);
+    let top = if video {
+        0.0
+    } else if native {
+        NATIVE_TOP_BAR_HEIGHT
+    } else if owns_header {
+        0.0
+    } else {
+        TITLE_BAR_HEIGHT
+    };
     let bottom = if ctx.settings.get().appearance.modern_ui { PLAYER_BAR_HEIGHT } else { 0.0 };
     let _ = view.set_position(LogicalPosition::new(0.0, top));
     let _ = view.set_size(LogicalSize::new(size.width, (size.height - top - bottom).max(1.0)));
@@ -158,8 +170,19 @@ pub fn layout_main(app: &AppHandle) {
         ctx.memory.read(|m| (m.ytm_view_loading, (m.now_playing_open || m.tour_open) && !video, m.ytm_player_page, m.ytm_foreign_page));
     // With native browsing the app draws the pages; the YTM page shows only for its player
     // page, video fullscreen, or a sign-in page.
-    let shown = if native_browse(app) { player_page || foreign || video } else { !loading };
-    let _ = if !shown || covered { view.hide() } else { view.show() };
+    let shown = if native { player_page || foreign || video } else { !loading };
+    if !shown || covered {
+        if native {
+            // Parked just outside the window instead of hidden: YouTube's player loads nothing
+            // in a page that has never been visible, so a hidden page would never start playing.
+            let _ = view.set_position(LogicalPosition::new(size.width + 16.0, top));
+            let _ = view.show();
+        } else {
+            let _ = view.hide();
+        }
+    } else {
+        let _ = view.show();
+    }
 }
 
 /// The app draws YouTube Music's pages itself. Needs the app's own player bar (Modern UI).

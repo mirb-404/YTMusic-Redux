@@ -176,6 +176,8 @@ fn open_external(app: &AppHandle, url: &Url) {
 #[serde(rename_all = "camelCase")]
 pub struct BridgeConfig {
     pub continue_where_you_left_off: bool,
+    /// The track resumed at launch starts paused.
+    pub pause_on_launch: bool,
     pub last_url: String,
     pub last_video_id: String,
     pub last_playlist_id: String,

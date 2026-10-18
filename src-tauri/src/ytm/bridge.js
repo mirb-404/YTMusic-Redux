@@ -93,6 +93,18 @@
   const navigate = (endpoint) => document.dispatchEvent(new CustomEvent("yt-navigate", { detail: { endpoint } }));
   // Until then, an opening player page came from playing an item on the app's own pages.
   let quietPlayUntil = 0;
+  // "Pause on launch": the first track that starts by itself (the one resumed at launch) is
+  // paused. Anything the user starts plays, so any command disarms it.
+  let launchPause = false;
+  document.addEventListener(
+    "play",
+    (e) => {
+      if (!launchPause || e.target.tagName !== "VIDEO") return;
+      launchPause = false;
+      e.target.pause();
+    },
+    true
+  );
 
   const toast = (text) =>
     ytAction(document.body, "yt-open-popup-action", [
@@ -134,6 +146,13 @@
       html[ytmr-hide-video] ytmusic-player #song-video, html[ytmr-hide-video] ytmusic-player:has(> #ytmr-art[src]) #song-image { visibility: hidden !important; }
       #ytmr-art { display: none; position: absolute; inset: 0; width: 100% !important; height: 100% !important; max-width: none !important; object-fit: contain !important; transform: none !important; border-radius: 0 !important; z-index: 5; pointer-events: none; }
       html[ytmr-hide-video] ytmusic-player #ytmr-art[src] { display: block; }
+      /* With the app's own pages the YTM page is only the video view: its header, sidebar
+         and window controls give way to the app's top bar. */
+      html[ytmr-native] ytmusic-nav-bar, html[ytmr-native] #nav-bar-background, html[ytmr-native] #nav-bar-divider,
+      html[ytmr-native] #guide-wrapper, html[ytmr-native] ytmusic-guide-renderer, html[ytmr-native] #mini-guide,
+      html[ytmr-native] #ytmr-window-controls { display: none !important; }
+      html[ytmr-native] ytmusic-app { --ytmusic-nav-bar-height: 0px !important; }
+      html[ytmr-native] ytmusic-app-layout { --ytmusic-guide-width: 0px !important; }
       /* An open search box is positioned at the start of its container, over the back and
          forward arrows; it keeps its place after them instead (2 x (24px glyph + 20px margin)). */
       .ytmd-history-forward:not(.pivotbar) + ytmusic-search-box[opened] { margin-left: 88px !important; }
@@ -946,6 +965,13 @@
   // or the page itself is fullscreen, which the browser exits on its own.
   let appFullscreen = false;
   window.addEventListener("keydown", (e) => {
+    if (e.key === "Escape" && document.documentElement.hasAttribute("ytmr-native") && !e.defaultPrevented && !document.fullscreenElement) {
+      // Esc leaves the video view back to the app's pages.
+      if (document.querySelector("ytmusic-player")?.getAttribute("player-ui-state") === "PLAYER_PAGE_OPEN" && !e.target.closest?.("input, textarea, tp-yt-paper-dialog, tp-yt-iron-dropdown")) {
+        exec("togglePlayerPage");
+        return;
+      }
+    }
     if (e.key !== "Escape" || !appFullscreen || e.defaultPrevented || document.fullscreenElement) return;
     if (e.target.closest?.("input, textarea, [contenteditable], tp-yt-paper-dialog, tp-yt-iron-dropdown")) return;
     invoke("ytm_toggle_fullscreen");
@@ -1183,7 +1209,11 @@
   }
 
   window.__YTMR__ = {
-    exec,
+    // Commands from the app are the user's: they play even with "pause on launch".
+    exec: (command, value) => {
+      launchPause = false;
+      exec(command, value);
+    },
     getPlaylists,
     ratioVolume,
     setCustomCss,
@@ -1199,7 +1229,19 @@
       ytmStore().dispatch({ type: "CLEAR" });
       ytmStore().dispatch({ type: "SET_PLAYER_UI_STATE", payload: "INACTIVE" });
     },
+    // Plays and shows the video view: YTM opens its player page for a track; a list played
+    // from its card may not, so it is opened then.
+    playOpen: (endpoint) => {
+      launchPause = false;
+      quietPlayUntil = 0;
+      navigate(endpoint);
+      setTimeout(() => {
+        if (document.querySelector("ytmusic-player")?.getAttribute("player-ui-state") !== "PLAYER_PAGE_OPEN") exec("togglePlayerPage");
+      }, 1500);
+    },
+    setNative: (on) => document.documentElement.toggleAttribute("ytmr-native", on),
     playQuietly: (endpoint) => {
+      launchPause = false;
       // Only a player page that was closed is put away again.
       const open = document.querySelector("ytmusic-player")?.getAttribute("player-ui-state") === "PLAYER_PAGE_OPEN";
       quietPlayUntil = open ? 0 : Date.now() + 5000;
@@ -1231,6 +1273,15 @@
   const ipcReady = waitFor(() => window.__TAURI_INTERNALS__);
   // Requested early so the round trip overlaps page loading.
   const configPromise = ipcReady.then(() => invoke("ytm_get_config"));
+  configPromise.then((config) => {
+    if (!config.pauseOnLaunch) return;
+    // The resumed track may already have started before the config arrived.
+    const playing = [...document.querySelectorAll("video")].find((v) => !v.paused);
+    if (playing) return playing.pause();
+    launchPause = true;
+    // A resume that never starts leaves later playback alone.
+    setTimeout(() => (launchPause = false), 30000);
+  });
   // The app's own pages call YTM's API with the same client YTM's page runs.
   ipcReady
     .then(() => waitFor(() => window.ytcfg?.get?.("INNERTUBE_CONTEXT")?.client))
@@ -1278,6 +1329,7 @@
     if (config.ratioVolume) ratioVolume.enable();
     if (config.customCss !== null) setCustomCss(config.customCss);
     setModernUi(config.modernCss);
+    document.documentElement.toggleAttribute("ytmr-native", config.nativeBrowse);
     audio.set(config.audio);
     autoCloseToasts();
     // As upstream does: after the player is up, so startup is not slowed down.

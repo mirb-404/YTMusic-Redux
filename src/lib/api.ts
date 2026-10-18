@@ -52,6 +52,7 @@ export type Settings = {
     progressInTaskbar: boolean;
     ratioVolume: boolean;
     showVideos: boolean;
+    openPlayerOnPlay: boolean;
     playbackRate: number;
     crossfadeSeconds: number;
     equalizer: { enabled: boolean; gains: number[] };

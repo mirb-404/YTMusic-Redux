@@ -36,7 +36,6 @@ impl Tasks {
 fn restart_required(old: &Settings, new: &Settings) -> bool {
     old.general.disable_hardware_acceleration != new.general.disable_hardware_acceleration
         || old.playback.enable_speaker_fill != new.playback.enable_speaker_fill
-        || old.playback.continue_where_you_left_off_paused != new.playback.continue_where_you_left_off_paused
         || old.developer.enable_dev_tools != new.developer.enable_dev_tools
 }
 
@@ -79,7 +78,8 @@ pub fn apply(app: &AppHandle, old: Option<&Settings>, new: &Settings) {
             ytm::call(app, "setModernUi", &[css]);
             crate::windows::layout_main(app);
         }
-        if changed(|s| s.appearance.native_browse) {
+        if changed(|s| s.appearance.native_browse || s.appearance.modern_ui) {
+            ytm::call(app, "setNative", &[json!(crate::windows::native_browse(app))]);
             crate::windows::layout_main(app);
         }
         if changed(|s| s.playback.block_ads) {

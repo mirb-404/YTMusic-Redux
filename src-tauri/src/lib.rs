@@ -47,11 +47,9 @@ fn browser_args(s: &settings::Settings) -> String {
     // Casting is unsupported, so the media router is off: without it Chromium never offers a
     // cast button, not even before the bridge has hidden YTM's own.
     let mut args = String::from("--disable-features=msWebOOUI,msPdfOOUI,msSmartScreenProtection,MediaRouter,GlobalMediaControlsCastStartStop");
-    args.push_str(if s.playback.continue_where_you_left_off_paused {
-        " --autoplay-policy=document-user-activation-required"
-    } else {
-        " --autoplay-policy=no-user-gesture-required"
-    });
+    // Playback is started from the app's own pages, never by a click inside the YTM page, so
+    // the page may always play. "Pause on launch" is done by the bridge instead.
+    args.push_str(" --autoplay-policy=no-user-gesture-required");
     if s.general.disable_hardware_acceleration {
         args.push_str(" --disable-gpu");
     }
@@ -266,10 +264,9 @@ mod tests {
     #[test]
     fn browser_args_follow_settings() {
         let mut s = crate::settings::Settings::default();
-        assert!(super::browser_args(&s).contains("document-user-activation-required"));
+        assert!(super::browser_args(&s).contains("no-user-gesture-required"));
         s.general.disable_hardware_acceleration = true;
         s.playback.enable_speaker_fill = true;
-        s.playback.continue_where_you_left_off_paused = false;
         let args = super::browser_args(&s);
         assert!(args.contains("--disable-gpu") && args.contains("--try-supported-channel-layouts") && args.contains("no-user-gesture-required"));
     }

@@ -9,6 +9,7 @@
   import PlayerBar from "../components/PlayerBar.svelte";
   import Tour from "../components/Tour.svelte";
   import Browser from "../components/browse/Browser.svelte";
+  import UpNext from "../components/browse/UpNext.svelte";
   import { nowPlaying } from "../lib/music.svelte";
   import { keyboardControls } from "../lib/keyboard";
   import { api, bestThumbnail, onMemory, onPlayerState, onSettings, type Memory, type PlayerState, type Settings } from "../lib/api";
@@ -86,7 +87,9 @@
 
 
   function onKey(e: KeyboardEvent) {
-    if (e.key === "Escape" && nowPlayingOpen) {
+    if (e.key === "Escape" && native && memory?.ytmPlayerPage) {
+      api.command("togglePlayerPage");
+    } else if (e.key === "Escape" && nowPlayingOpen) {
       api.setNowPlayingOpen(false);
     } else if (e.key === "Escape" && fullscreen) {
       api.toggleFullscreen();
@@ -179,7 +182,8 @@
   {#if native}
     <!-- Kept mounted under the lyrics view, so pages keep their place. -->
     <div class="native">
-      <Browser controls={windowControls} {drag} {session} {player} />
+      <Browser controls={windowControls} {drag} {session} {player} videoOpen={memory?.ytmPlayerPage ?? false} />
+      <UpNext {player} {elapsed} />
       {#if nowPlayingOpen}
         <div class="layer overlay" in:fly={{ y: 28, duration: 260, easing: cubicOut }} out:fade={{ duration: 140 }}>
           <NowPlaying

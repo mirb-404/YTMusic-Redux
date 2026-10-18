@@ -223,7 +223,7 @@
                   <Toggle label="Continue where you left off" checked={s.playback.continueWhereYouLeftOff} onchange={(v) => set("playback.continueWhereYouLeftOff", v)} />
                 </Row>
                 {#if s.playback.continueWhereYouLeftOff}
-                  <Row title="Pause on application launch" nested restart>
+                  <Row title="Pause on application launch" nested>
                     <Toggle label="Pause on application launch" checked={s.playback.continueWhereYouLeftOffPaused} onchange={(v) => set("playback.continueWhereYouLeftOffPaused", v)} />
                   </Row>
                 {/if}
@@ -243,6 +243,11 @@
                 <Row title="Show music videos" description="Off plays the audio-only song version where one exists and shows artwork instead of video">
                   <Toggle label="Show music videos" checked={s.playback.showVideos} onchange={(v) => set("playback.showVideos", v)} />
                 </Row>
+                {#if s.appearance.modernUi && s.appearance.nativeBrowse}
+                  <Row title="Open the player when playing" description="Playing a song shows its video or artwork; off keeps playback in the player bar">
+                    <Toggle label="Open the player when playing" checked={s.playback.openPlayerOnPlay} onchange={(v) => set("playback.openPlayerOnPlay", v)} />
+                  </Row>
+                {/if}
                 <Row title="Block ads" description="Removes ads before they load and skips any that still play">
                   <Toggle label="Block ads" checked={s.playback.blockAds} onchange={(v) => set("playback.blockAds", v)} />
                 </Row>

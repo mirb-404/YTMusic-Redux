@@ -7,6 +7,7 @@
   import PlaylistDialog from "./PlaylistDialog.svelte";
   import QueuePanel from "./QueuePanel.svelte";
   import Toast from "./Toast.svelte";
+  import { api } from "../../lib/api";
   import type { PlayerState } from "../../lib/api";
   import SearchBox from "./SearchBox.svelte";
   import Sidebar from "./Sidebar.svelte";
@@ -14,7 +15,27 @@
 
   // The app's own YouTube Music pages: top bar with history and search, sidebar, and the
   // page, drawn from YTM's API instead of YTM's website.
-  let { controls, drag, session, player }: { controls: Snippet; drag?: boolean; session: number; player: PlayerState | null } = $props();
+  let {
+    controls,
+    drag,
+    session,
+    player,
+    videoOpen = false
+  }: { controls: Snippet; drag?: boolean; session: number; player: PlayerState | null; videoOpen?: boolean } = $props();
+
+  // The video view (YTM's player page) covers the pages below the top bar: back leaves it,
+  // and going anywhere else closes it.
+  const closeVideo = () => api.command("togglePlayerPage");
+  function back() {
+    if (videoOpen) closeVideo();
+    else router.back();
+  }
+  let lastIndex = router.index;
+  $effect(() => {
+    const index = router.index;
+    if (index !== lastIndex && videoOpen) closeVideo();
+    lastIndex = index;
+  });
 
   let scroller = $state<HTMLElement>();
   let search = $state<ReturnType<typeof SearchBox>>();
@@ -33,7 +54,7 @@
       else if (action === "home") router.go({ kind: "browse", endpoint: HOME });
       else if (action === "explore") router.go({ kind: "browse", endpoint: EXPLORE });
       else if (action === "library") router.go({ kind: "browse", endpoint: LIBRARY });
-      else if (action === "back") router.back();
+      else if (action === "back") back();
       else if (action === "forward") router.forward();
       else if (action === "queue") ui.queueOpen = !ui.queueOpen;
     });
@@ -75,7 +96,7 @@
 
 <header class="topbar" data-tauri-drag-region={drag}>
   <div class="history" data-tauri-drag-region={drag}>
-    <button class="round" title="Back (Alt+Left)" disabled={!router.canBack} onclick={() => router.back()}><Icon name="chevronLeft" size={22} /></button>
+    <button class="round" class:video={videoOpen} title={videoOpen ? "Back to the pages (Esc)" : "Back (Alt+Left)"} disabled={!videoOpen && !router.canBack} onclick={back}><Icon name={videoOpen ? "chevronDown" : "chevronLeft"} size={22} /></button>
     <button class="round" title="Forward (Alt+Right)" disabled={!router.canForward} onclick={() => router.forward()}><Icon name="chevronRight" size={22} /></button>
   </div>
   <div class="center" data-tauri-drag-region={drag}><SearchBox bind:this={search} /></div>
@@ -133,6 +154,7 @@
   }
   .round:hover:not(:disabled) { background: var(--surface-active); }
   .round:disabled { opacity: 0.35; cursor: default; }
+  .round.video { background: #fff; color: #000; }
   .center { display: flex; justify-content: center; padding: 0 24px; min-width: 0; }
   .right { display: flex; align-items: center; align-self: stretch; }
 

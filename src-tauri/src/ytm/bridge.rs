@@ -30,6 +30,7 @@ pub fn ytm_get_config(webview: Webview, app: AppHandle) -> Result<BridgeConfig> 
         ctx.state.read(|st| (st.last_url.clone(), st.last_video_id.clone(), st.last_playlist_id.clone()));
     Ok(BridgeConfig {
         continue_where_you_left_off: s.playback.continue_where_you_left_off,
+        pause_on_launch: s.playback.continue_where_you_left_off && s.playback.continue_where_you_left_off_paused,
         last_url,
         last_video_id,
         last_playlist_id,
@@ -181,7 +182,17 @@ pub async fn ytm_window_action(webview: Webview, app: AppHandle, action: String)
 pub fn ytm_player_page(webview: Webview, app: AppHandle, open: bool) -> Result<()> {
     ensure_ytm(&webview)?;
     app_ctx(&app).memory.update(&app, |m| m.ytm_player_page = open);
-    windows::layout_main(&app);
+    if open {
+        windows::layout_main(&app);
+    } else {
+        // YTM slides its player page down into the player bar; the view stays for that.
+        tauri::async_runtime::spawn(async move {
+            tokio::time::sleep(std::time::Duration::from_millis(380)).await;
+            if !app_ctx(&app).memory.read(|m| m.ytm_player_page) {
+                windows::layout_main(&app);
+            }
+        });
+    }
     Ok(())
 }
 

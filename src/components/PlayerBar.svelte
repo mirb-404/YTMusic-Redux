@@ -165,7 +165,11 @@
       data-tour="video"
       class:active={showVideos}
       title={showVideos ? "Music videos on (switch to audio only)" : "Audio only (switch to music videos)"}
-      onclick={() => api.setSetting("playback.showVideos", !showVideos)}
+      onclick={() => {
+        api.setSetting("playback.showVideos", !showVideos);
+        // Over the app's own pages the video only shows on YTM's player page.
+        if (native && !showVideos && video && !memory?.ytmPlayerPage) api.command("togglePlayerPage");
+      }}
     >
       <Icon name={showVideos ? "video" : "videoOff"} size={20} />
     </button>
