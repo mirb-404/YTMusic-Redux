@@ -20,7 +20,6 @@
   let devTools = $state(false);
   let modernUi = $state(true);
   let showVideos = $state(true);
-  let captions = $state(false);
 
   const clock = new ProgressClock();
   const lyrics = new LyricsTrack();
@@ -39,16 +38,11 @@
   const art = $derived(bestThumbnail(video?.thumbnails, 60));
   const elapsed = $derived(clock.elapsed(playing, video?.durationSeconds ?? 0));
   const lineIndex = $derived(lyrics.lineAt(elapsed));
-  const caption = $derived.by(() => {
-    if (!captions || nowPlayingOpen || player?.player.adPlaying) return null;
-    return lyrics.data?.synced?.[lineIndex]?.text || null;
-  });
 
   function applySettings(s: Settings) {
     devTools = s.developer.enableDevTools;
     modernUi = s.appearance.modernUi;
     showVideos = s.playback.showVideos;
-    captions = s.appearance.lyricsCaptions;
   }
 
   $effect(() => {
@@ -62,12 +56,9 @@
 
   // Lyrics are only fetched while something shows them.
   $effect(() => {
-    if (video?.id && (nowPlayingOpen || captions)) lyrics.load(video.id);
+    if (video?.id && nowPlayingOpen) lyrics.load(video.id);
   });
 
-  $effect(() => {
-    api.setCaption(caption);
-  });
 
   function onKey(e: KeyboardEvent) {
     if (e.key === "F11") {
@@ -162,7 +153,6 @@
       {player}
       {lyrics}
       {lineIndex}
-      {captions}
       {showVideos}
       onclose={() => api.setNowPlayingOpen(false)}
       onseek={(t) => {

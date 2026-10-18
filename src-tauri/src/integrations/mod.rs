@@ -90,9 +90,6 @@ pub fn apply(app: &AppHandle, old: Option<&Settings>, new: &Settings) {
         if ytm::audio_config(previous) != audio {
             ytm::call(app, "setAudio", &[audio]);
         }
-        if changed(|s| s.appearance.lyrics_captions) && !new.appearance.lyrics_captions {
-            ytm::call(app, "setCaption", &[serde_json::Value::Null]);
-        }
         if changed(|s| s.playback.progress_in_taskbar) && !new.playback.progress_in_taskbar {
             taskbar::clear_progress(app);
         }

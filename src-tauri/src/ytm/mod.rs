@@ -12,24 +12,18 @@ use tauri::{AppHandle, Manager, Runtime, Url, Webview, WebviewBuilder, WebviewUr
 pub const YTM_HOME: &str = "https://music.youtube.com/";
 pub const LABEL: &str = "ytm";
 const MODERN_THEME: &str = include_str!("theme.css");
-/// Third-party performance patches for YTM's page (from ytmdesktop2): a CPU tamer that
-/// coalesces the page's timers onto animation frames, and rm3, which recycles Polymer
-/// components instead of leaking them. Exposed as `window.__YTMR_PERF__`, which the bridge
-/// calls once the player is ready.
+/// Third-party performance patch for YTM's page (from ytmdesktop2): rm3, which recycles
+/// Polymer components instead of leaking them. Exposed as `window.__YTMR_PERF__`, which the
+/// bridge calls once the player is ready. ytmdesktop2's CPU tamer is deliberately left out:
+/// while music plays it holds the page's chained timers to one per animation frame, and YTM
+/// renders long lists (History, playlists) through those timers, so pages filled slowly.
 const PERF_SCRIPT: &str = concat!(
     "(() => {
-",
-    include_str!("vendor/cpu-tamer.js"),
-    "
 ",
     include_str!("vendor/rm3.js"),
     r#"
 window.__YTMR_PERF__ = () => {
   try { injectRm3(); } catch (e) { console.warn("YTMusic Redux: rm3 skipped", e); }
-  let gpu = false;
-  try { gpu = !!document.createElement("canvas").getContext("webgl"); } catch {}
-  try { (gpu ? injectCpuTamerByAnimationFrame : injectCpuTamerByDomMutation).call(window, null); }
-  catch (e) { console.warn("YTMusic Redux: CPU tamer skipped", e); }
 };
 })();
 "#

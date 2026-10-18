@@ -214,7 +214,6 @@ pub fn run() {
             commands::set_now_playing_open,
             commands::set_tour_open,
             commands::get_lyrics,
-            commands::ytm_set_caption,
             commands::show_main_window,
             commands::ytm_recreate,
             commands::ytm_navigate_home,

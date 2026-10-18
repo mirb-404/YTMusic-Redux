@@ -362,19 +362,28 @@
   }
 
   function hookPlayerApiEvents() {
+    // YTM dispatches store actions constantly (dozens per page navigation). Forwarding each one
+    // serialized the whole queue on the page's thread and sent it to Rust, which slowed every
+    // navigation. The store is immutable, so unchanged slices keep their identity: only real
+    // changes are forwarded.
+    let sent = {};
     const sendStoreState = () => {
       const state = ytmStore().getState();
       if (state.player.adPlaying) adblock.skip();
       const videoId = playerApi().getPlayerResponse()?.videoDetails?.videoId;
-      audio.skipIfDisliked(videoId, currentLikeStatus(videoId));
-      // Only the fields needed to operate are forwarded; the store contains sensitive data.
-      invoke("ytm_store_state", {
+      const likeStatus = currentLikeStatus(videoId);
+      const next = {
         queue: state.queue ?? null,
-        likeStatus: currentLikeStatus(videoId),
+        likeStatus,
         volume: state.player.volume,
         muted: !!state.player.muted,
         adPlaying: !!state.player.adPlaying
-      });
+      };
+      if (Object.keys(next).every((key) => next[key] === sent[key])) return;
+      sent = next;
+      audio.skipIfDisliked(videoId, likeStatus);
+      // Only the fields needed to operate are forwarded; the store contains sensitive data.
+      invoke("ytm_store_state", next);
     };
 
     playerApi().addEventListener("onVideoProgress", (progress) => invoke("ytm_video_progress", { progress }));
@@ -499,31 +508,6 @@
     el.textContent = css;
   }
 
-
-  // --- Lyric captions: the current synced line, shown like subtitles. Placed inside the
-  // fullscreen element while a video is fullscreen, since nothing else is visible then.
-  function setCaption(text) {
-    let el = document.getElementById("ytmr-caption");
-    if (!text) {
-      el?.remove();
-      return;
-    }
-    if (!el) {
-      el = document.createElement("div");
-      el.id = "ytmr-caption";
-      el.style.cssText =
-        "position:fixed;left:50%;bottom:32px;transform:translateX(-50%);max-width:80%;padding:8px 16px;" +
-        "border-radius:8px;background:rgba(0,0,0,0.72);color:#fff;font:600 22px/1.35 'Segoe UI',system-ui,sans-serif;" +
-        "text-align:center;z-index:2147483647;pointer-events:none;";
-    }
-    el.textContent = text;
-    const parent = document.fullscreenElement || document.body;
-    if (el.parentNode !== parent) parent.appendChild(el);
-  }
-  document.addEventListener("fullscreenchange", () => {
-    const el = document.getElementById("ytmr-caption");
-    if (el) (document.fullscreenElement || document.body).appendChild(el);
-  });
 
   // --- Audio: song/video preference, playback speed, equalizer and track fades
   const audio = {
@@ -923,7 +907,6 @@
     ratioVolume,
     setCustomCss,
     setModernUi,
-    setCaption,
     setAdBlock: (on) => (adblock.enabled = on),
     navigateHome: () => navigate({ browseEndpoint: { browseId: "FEmusic_home" } }),
     exitFullscreen: () => document.fullscreenElement && document.exitFullscreen(),

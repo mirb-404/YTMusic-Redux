@@ -40,7 +40,6 @@ export type Settings = {
     customCssPath: string | null;
     zoom: number;
     trayIconStyle: "auto" | "white" | "black";
-    lyricsCaptions: boolean;
   };
   playback: {
     continueWhereYouLeftOff: boolean;
@@ -112,7 +111,6 @@ export const api = {
   setNowPlayingOpen: (open: boolean) => invoke<void>("set_now_playing_open", { open }),
   setTourOpen: (open: boolean) => invoke<void>("set_tour_open", { open }),
   getLyrics: () => invoke<Lyrics | null>("get_lyrics"),
-  setCaption: (text: string | null) => invoke<void>("ytm_set_caption", { text }),
   showMainWindow: () => invoke<void>("show_main_window"),
   ytmRecreate: () => invoke<void>("ytm_recreate"),
   ytmNavigateHome: () => invoke<void>("ytm_navigate_home"),

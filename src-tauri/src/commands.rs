@@ -131,17 +131,6 @@ pub async fn get_lyrics(app: AppHandle) -> Result<Option<Lyrics>> {
     ctx.lyrics.get(&video).await
 }
 
-/// Shows (or with `None` clears) a lyric caption over the YTM view.
-#[tauri::command]
-pub fn ytm_set_caption(app: AppHandle, text: Option<String>) -> Result<()> {
-    if text.as_ref().is_some_and(|t| t.len() > 500) {
-        return Err("caption is too long".into());
-    }
-    let shown = text.filter(|_| app_ctx(&app).settings.get().appearance.lyrics_captions);
-    ytm::call(&app, "setCaption", &[json!(shown)]);
-    Ok(())
-}
-
 #[tauri::command]
 pub fn show_main_window(app: AppHandle) {
     windows::show_main(&app);

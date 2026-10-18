@@ -6229,7 +6229,7 @@ dependencies = [
 
 [[package]]
 name = "ytmusic-redux"
-version = "2.0.0"
+version = "2.1.0"
 dependencies = [
  "axum",
  "hex",
@@ -6257,7 +6257,9 @@ dependencies = [
  "tokio",
  "tower-http",
  "uuid",
+ "webview2-com",
  "windows 0.61.3",
+ "windows-core 0.62.2",
 ]
 
 [[package]]

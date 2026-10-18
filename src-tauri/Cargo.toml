@@ -1,6 +1,6 @@
 [package]
 name = "ytmusic-redux"
-version = "2.0.0"
+version = "2.1.0"
 description = "YTMusic Redux: a fast YouTube Music desktop client built with Tauri and Rust"
 authors = ["Mirang Bhandari", "YTMusic Redux contributors"]
 edition = "2021"
@@ -41,6 +41,9 @@ uuid = { version = "1", features = ["v4"] }
 regex = "1"
 
 [target.'cfg(windows)'.dependencies]
+# Same versions Tauri's WebView2 backend already uses, for the memory target level API.
+webview2-com = "0.39"
+windows-core = "0.62"
 windows = { version = "0.61", features = [
   "Win32_Foundation",
   "Win32_System_Com",

@@ -54,9 +54,12 @@ pub fn create_main(app: &AppHandle) -> tauri::Result<()> {
         // Minimizing resizes the window to nothing. Laying out for that would squash YTM into a
         // 1px view that reflows and pops back in on restore, so the layout is kept as it was.
         WindowEvent::Resized(size) if size.width > 0 && size.height > 0 => {
+            set_main_in_background(&app_handle, false);
             layout_main(&app_handle);
             emit_window_state(&app_handle);
         }
+        WindowEvent::Resized(_) => set_main_in_background(&app_handle, true),
+        WindowEvent::Focused(true) => set_main_in_background(&app_handle, false),
         WindowEvent::CloseRequested { api, .. } => {
             save_main_bounds(&app_handle);
             if app_ctx(&app_handle).settings.get().general.hide_to_tray_on_close {
@@ -64,6 +67,7 @@ pub fn create_main(app: &AppHandle) -> tauri::Result<()> {
                 if let Some(w) = app_handle.get_window(MAIN) {
                     let _ = w.hide();
                 }
+                set_main_in_background(&app_handle, true);
             } else {
                 crate::quit(&app_handle);
             }
@@ -71,7 +75,9 @@ pub fn create_main(app: &AppHandle) -> tauri::Result<()> {
         _ => {}
     });
 
-    if !ctx.settings.get().general.start_minimized {
+    if ctx.settings.get().general.start_minimized {
+        set_main_in_background(app, true);
+    } else {
         window.show()?;
     }
     Ok(())
@@ -88,6 +94,35 @@ pub fn emit_window_state(app: &AppHandle) {
         );
         ytm::call(app, "setMaximized", &[serde_json::json!(maximized)]);
         ytm::call(app, "setFullscreen", &[serde_json::json!(is_fullscreen())]);
+    }
+}
+
+static IN_BACKGROUND: AtomicBool = AtomicBool::new(false);
+
+/// While the main window is minimized or hidden to the tray, WebView2 is asked to keep its
+/// webviews lean: it drops caches and other memory it can rebuild, and playback carries on.
+/// Showing the window again restores the normal level. Only transitions reach WebView2.
+pub fn set_main_in_background(app: &AppHandle, background: bool) {
+    if IN_BACKGROUND.swap(background, Ordering::Relaxed) == background {
+        return;
+    }
+    #[cfg(windows)]
+    for label in [SHELL, ytm::LABEL] {
+        let Some(view) = app.get_webview(label) else { continue };
+        let _ = view.with_webview(move |w| unsafe {
+            use webview2_com::Microsoft::Web::WebView2::Win32::{
+                ICoreWebView2_19, COREWEBVIEW2_MEMORY_USAGE_TARGET_LEVEL_LOW, COREWEBVIEW2_MEMORY_USAGE_TARGET_LEVEL_NORMAL,
+            };
+            use windows_core::Interface;
+            let level = if background {
+                COREWEBVIEW2_MEMORY_USAGE_TARGET_LEVEL_LOW
+            } else {
+                COREWEBVIEW2_MEMORY_USAGE_TARGET_LEVEL_NORMAL
+            };
+            if let Ok(core) = w.controller().CoreWebView2().and_then(|c| c.cast::<ICoreWebView2_19>()) {
+                let _ = core.SetMemoryUsageTargetLevel(level);
+            }
+        });
     }
 }
 
@@ -207,6 +242,7 @@ pub fn toggle_main(app: &AppHandle) {
     if let Some(w) = app.get_window(MAIN) {
         if w.is_visible().unwrap_or(false) {
             let _ = w.hide();
+            set_main_in_background(app, true);
         } else {
             show_main(app);
         }

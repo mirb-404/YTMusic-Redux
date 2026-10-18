@@ -51,7 +51,7 @@ pub fn ytm_loaded(webview: Webview, app: AppHandle, owns_header: bool) -> Result
 }
 
 #[tauri::command]
-pub fn ytm_video_progress(webview: Webview, app: AppHandle, progress: f64) -> Result<()> {
+pub async fn ytm_video_progress(webview: Webview, app: AppHandle, progress: f64) -> Result<()> {
     ensure_ytm(&webview)?;
     if progress.is_finite() && progress >= 0.0 {
         app_ctx(&app).player.update_progress(progress);
@@ -60,14 +60,14 @@ pub fn ytm_video_progress(webview: Webview, app: AppHandle, progress: f64) -> Re
 }
 
 #[tauri::command]
-pub fn ytm_video_state(webview: Webview, app: AppHandle, state: i64) -> Result<()> {
+pub async fn ytm_video_state(webview: Webview, app: AppHandle, state: i64) -> Result<()> {
     ensure_ytm(&webview)?;
     app_ctx(&app).player.update_track_state(state);
     Ok(())
 }
 
 #[tauri::command]
-pub fn ytm_video_data(
+pub async fn ytm_video_data(
     webview: Webview,
     app: AppHandle,
     video_details: Value,
@@ -88,7 +88,7 @@ pub fn ytm_video_data(
 }
 
 #[tauri::command]
-pub fn ytm_store_state(
+pub async fn ytm_store_state(
     webview: Webview,
     app: AppHandle,
     queue: Option<Value>,
@@ -130,7 +130,7 @@ pub fn ytm_playlists_response(webview: Webview, app: AppHandle, request_id: Stri
 }
 
 #[tauri::command]
-pub fn ytm_url_changed(webview: Webview, app: AppHandle, url: String) -> Result<()> {
+pub async fn ytm_url_changed(webview: Webview, app: AppHandle, url: String) -> Result<()> {
     ensure_ytm(&webview)?;
     if url.starts_with(super::YTM_HOME) {
         app_ctx(&app).state.update_volatile(|s| s.last_url = url);

@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Installs into a "YTMusic Redux" folder inside whatever folder the user picks. Without this,
+     choosing e.g. D:\ in the installer's folder dialog spreads the app's files across D:\.
+     The default location already ends in the app's folder and is left as it is, and so is a
+     repair or upgrade of an existing install. -->
+<Wix xmlns="http://schemas.microsoft.com/wix/2006/wi">
+  <Fragment>
+    <!-- Referenced from tauri.conf.json (componentGroupRefs) so this fragment gets linked. -->
+    <ComponentGroup Id="YtmrInstallFolder" />
+    <SetDirectory Id="INSTALLDIR" Value="[INSTALLDIR]YTMusic Redux\" Sequence="execute">
+      <![CDATA[NOT Installed AND NOT (INSTALLDIR ~>> "\YTMusic Redux\" OR INSTALLDIR ~>> "\YTMusic Redux")]]>
+    </SetDirectory>
+  </Fragment>
+</Wix>

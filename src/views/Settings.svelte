@@ -245,9 +245,6 @@
                     {/each}
                   </div>
                 </Row>
-                <Row title="Lyric captions" description="Show the current synced lyric line over YouTube Music, like subtitles">
-                  <Toggle label="Lyric captions" checked={s.appearance.lyricsCaptions} onchange={(v) => set("appearance.lyricsCaptions", v)} />
-                </Row>
               </div>
 
               <h2>Equalizer</h2>

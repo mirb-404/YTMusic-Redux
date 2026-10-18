@@ -35,7 +35,6 @@ permissions = [
   "allow-set-now-playing-open",
   "allow-set-tour-open",
   "allow-get-lyrics",
-  "allow-ytm-set-caption",
   "allow-show-main-window",
   "allow-ytm-recreate",
   "allow-ytm-navigate-home",

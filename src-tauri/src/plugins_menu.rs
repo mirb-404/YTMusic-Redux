@@ -12,9 +12,8 @@ const PREFIX: &str = "plugin:";
 const SETTINGS_ID: &str = "plugin-settings";
 
 /// (setting key, label) for every toggleable plugin.
-const PLUGINS: [(&str, &str); 9] = [
+const PLUGINS: [(&str, &str); 8] = [
     ("playback.showVideos", "Show music videos"),
-    ("appearance.lyricsCaptions", "Lyric captions"),
     ("playback.equalizer.enabled", "Equalizer"),
     ("integrations.companionServerEnabled", "Companion server"),
     ("integrations.discordPresenceEnabled", "Discord Rich Presence"),

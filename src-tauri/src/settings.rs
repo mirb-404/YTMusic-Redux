@@ -38,8 +38,6 @@ pub struct Appearance {
     pub custom_css_path: Option<String>,
     pub zoom: u32,
     pub tray_icon_style: TrayIconStyle,
-    /// Shows the current synced lyric line over YouTube Music, like subtitles.
-    pub lyrics_captions: bool,
 }
 
 impl Default for Appearance {
@@ -51,7 +49,6 @@ impl Default for Appearance {
             custom_css_path: None,
             zoom: 100,
             tray_icon_style: TrayIconStyle::Auto,
-            lyrics_captions: false,
         }
     }
 }

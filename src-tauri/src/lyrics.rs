@@ -1,5 +1,5 @@
 //! Lyrics from LRCLIB (https://lrclib.net), a free community lyrics database that needs no
-//! API key. Time-coded (synced) lyrics drive the now playing view and lyric captions.
+//! API key. Time-coded (synced) lyrics drive the now playing view.
 
 use crate::player::Video;
 use regex::Regex;

@@ -32,7 +32,7 @@ and adds a mini player and a redesigned interface.
 | Disable hardware acceleration, speaker fill | WebView2 browser args (restart required) |
 | Single instance + deep links | `ytmr://play/<videoId>[/<playlistId>]` |
 | **From [ytmdesktop2](https://github.com/Venipa/ytmdesktop2):** shared links | Swap `https://` for `ytmr://` on a YouTube Music, YouTube or youtu.be track, playlist, channel or `@handle` URL to open it in the app (`ytm::shared_link`) |
-| **From ytmdesktop2:** performance fixes | Bundled CPU tamer and rm3 patches cut YTM's background CPU and memory use (`src-tauri/src/ytm/vendor`) |
+| **From ytmdesktop2:** performance fix | Bundled rm3 patch recycles YTM's page components instead of leaking them (`src-tauri/src/ytm/vendor`) |
 | **From ytmdesktop2:** skip disliked songs, music video quality, toast auto-close | Settings → Audio; YTM's "Saved to…" toasts close after 3 s |
 | **New:** Modern UI (default on, Settings → Appearance) | App-rendered bottom player bar with a Samsung Music-style **wave seek line** (the played part ripples while playing, flat when paused), glass theme for the YTM page, artwork-tinted ambient background, sleep timer with countdown |
 | **New:** mini player | Always-on-top player with the same wave seek line, like, volume (scroll on art) |
@@ -76,7 +76,7 @@ runtime around it.
 | Upstream request | In Redux |
 | --- | --- |
 | [Ability to turn off video](https://github.com/ytmdesktop/ytmdesktop/issues/46) (open since the early days, 30+ comments) | One-click audio-only mode. The player shows the track's artwork instead of a blank area |
-| [Realtime lyrics](https://github.com/ytmdesktop/ytmdesktop/issues/809), [lyrics in the same window](https://github.com/ytmdesktop/ytmdesktop/issues/1005) | Synced lyrics in a built-in Now Playing view (LRCLIB). Click a line to seek. Optional lyric captions over the player |
+| [Realtime lyrics](https://github.com/ytmdesktop/ytmdesktop/issues/809), [lyrics in the same window](https://github.com/ytmdesktop/ytmdesktop/issues/1005) | Synced lyrics in a built-in Now Playing view (LRCLIB). Click a line to seek |
 | [AdBlock support](https://github.com/ytmdesktop/ytmdesktop/issues/114) | Built-in ad blocking (Settings → Audio): ads are removed from YouTube Music's responses before they load, and any that still play are skipped |
 | [Equalizer](https://github.com/ytmdesktop/ytmdesktop/issues/819) | 10-band equalizer in Settings → Audio |
 | [Crossfade](https://github.com/ytmdesktop/ytmdesktop/issues/391) | Fade out the end of each track and fade in the next (0–12 s) |

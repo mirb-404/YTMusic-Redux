@@ -1,7 +1,6 @@
 import { api, type Lyrics } from "./api";
 
-// Lyrics of the current track, fetched once per video and shared by the now playing view
-// and lyric captions.
+// Lyrics of the current track, fetched once per video and shared by the now playing view.
 export class LyricsTrack {
   data = $state<Lyrics | null>(null);
   loading = $state(false);

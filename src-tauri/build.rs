@@ -29,7 +29,6 @@ const UI_COMMANDS: &[&str] = &[
     "set_now_playing_open",
     "set_tour_open",
     "get_lyrics",
-    "ytm_set_caption",
     "show_main_window",
     "ytm_recreate",
     "ytm_navigate_home",
