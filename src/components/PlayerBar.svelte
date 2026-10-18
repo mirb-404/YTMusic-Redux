@@ -1,5 +1,7 @@
 <script lang="ts">
   import { onMount } from "svelte";
+  import { fade, scale } from "svelte/transition";
+  import { cubicOut } from "svelte/easing";
   import Icon from "./Icon.svelte";
   import WaveSlider from "./WaveSlider.svelte";
   import { api, bestThumbnail, formatTime, type Memory, type PlayerState } from "../lib/api";
@@ -75,7 +77,7 @@
 <footer class="bar">
   <section class="track">
     <button class="art" title="Now playing" disabled={!video} onclick={() => api.command("togglePlayerPage")}>
-      {#if art}<img src={art} alt="" />{:else}<Icon name="music" size={22} />{/if}
+      {#if art}{#key art}<img src={art} alt="" in:fade={{ duration: 220 }} />{/key}{:else}<Icon name="music" size={22} />{/if}
       <span class="overlay"><Icon name="expand" size={18} /></span>
     </button>
     <div class="meta">
@@ -129,7 +131,7 @@
       </button>
       {#if sleepLeft !== null}<span class="countdown">{formatTime(sleepLeft)}</span>{/if}
       {#if sleepOpen}
-        <div class="menu" role="menu">
+        <div class="menu" role="menu" transition:scale={{ start: 0.96, duration: 140, easing: cubicOut }}>
           <div class="menu-title">Pause music after</div>
           {#each sleepOptions as m (m)}
             <button role="menuitem" onclick={() => setSleep(m)}>{m < 60 ? `${m} minutes` : `${m / 60} hour${m > 60 ? "s" : ""}`}</button>

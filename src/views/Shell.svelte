@@ -2,6 +2,8 @@
   import { getCurrentWindow } from "@tauri-apps/api/window";
   import { listen } from "@tauri-apps/api/event";
   import { onMount } from "svelte";
+  import { fade, fly } from "svelte/transition";
+  import { cubicOut } from "svelte/easing";
   import Icon from "../components/Icon.svelte";
   import NowPlaying from "../components/NowPlaying.svelte";
   import PlayerBar from "../components/PlayerBar.svelte";
@@ -150,6 +152,7 @@
   {/if}
 
   {#if nowPlayingOpen}
+    <div class="layer" in:fly={{ y: 28, duration: 260, easing: cubicOut }} out:fade={{ duration: 140 }}>
     <NowPlaying
       {player}
       {lyrics}
@@ -162,9 +165,30 @@
         api.command("seekTo", t);
       }}
     />
+    </div>
   {:else if memory?.ytmViewLoading !== false}
-    <main class="loader">
-      {#if !memory?.ytmViewLoadTimedout}<span class="spinner" aria-hidden="true"></span>{/if}
+    <!-- A skeleton of YTM's layout, so the app looks ready from the first frame while the page
+         loads behind it. -->
+    <main class="loader" out:fade={{ duration: 180 }}>
+      {#if !memory?.ytmViewLoadTimedout}
+        <div class="skeleton" aria-hidden="true">
+          <div class="sk-nav"><span class="sk sk-logo"></span><span class="sk sk-search"></span></div>
+          <div class="sk-body">
+            <div class="sk-side">
+              {#each [0, 1, 2] as i (i)}<span class="sk sk-entry"></span>{/each}
+              <span class="sk-gap"></span>
+              {#each [0, 1, 2, 3, 4] as i (i)}<span class="sk sk-entry short"></span>{/each}
+            </div>
+            <div class="sk-main">
+              <div class="sk-chips">{#each [0, 1, 2, 3, 4, 5] as i (i)}<span class="sk sk-chip"></span>{/each}</div>
+              <span class="sk sk-heading"></span>
+              <div class="sk-row">{#each [0, 1, 2, 3, 4, 5] as i (i)}<span class="sk sk-card"></span>{/each}</div>
+              <span class="sk sk-heading"></span>
+              <div class="sk-row">{#each [0, 1, 2, 3, 4, 5] as i (i)}<span class="sk sk-card"></span>{/each}</div>
+            </div>
+          </div>
+        </div>
+      {/if}
       <p class="status">{memory?.ytmViewLoadingStatus || "Starting..."}</p>
       {#if memory?.ytmViewLoadTimedout}
         <div class="timeout">
@@ -250,20 +274,38 @@
   .win-btn.close:hover { background: #c42b1c; color: #fff; }
 
   .ytm-slot { flex: 1; }
+  .layer { flex: 1; min-height: 0; display: flex; }
   .loader {
-    flex: 1;
+    flex: 1; min-height: 0;
+    position: relative;
     display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 16px;
   }
-  .spinner {
-    width: 28px; height: 28px; border-radius: 50%;
-    border: 3px solid rgba(255, 255, 255, 0.12);
-    border-top-color: var(--accent);
-    animation: spin 0.8s linear infinite;
+  .skeleton { position: absolute; inset: 0; display: flex; flex-direction: column; pointer-events: none; }
+  .sk {
+    display: block; border-radius: 6px;
+    background: linear-gradient(90deg, rgba(255, 255, 255, 0.04) 0%, rgba(255, 255, 255, 0.08) 50%, rgba(255, 255, 255, 0.04) 100%);
+    background-size: 200% 100%;
+    animation: shimmer 1.4s linear infinite;
   }
-  .status { margin: 0; color: var(--text-muted); font-size: 13px; }
+  .sk-nav { height: 64px; flex: none; display: flex; align-items: center; gap: 40px; padding: 0 24px; border-bottom: 1px solid var(--border); }
+  .sk-logo { width: 96px; height: 24px; }
+  .sk-search { width: min(480px, 40%); height: 40px; border-radius: 8px; }
+  .sk-body { flex: 1; min-height: 0; display: flex; }
+  .sk-side { width: 240px; flex: none; display: flex; flex-direction: column; gap: 10px; padding: 16px 12px; border-right: 1px solid var(--border); }
+  .sk-entry { height: 36px; }
+  .sk-entry.short { height: 44px; }
+  .sk-gap { height: 12px; }
+  .sk-main { flex: 1; min-width: 0; padding: 20px 32px; display: flex; flex-direction: column; gap: 20px; overflow: hidden; }
+  .sk-chips { display: flex; gap: 10px; }
+  .sk-chip { width: 84px; height: 32px; border-radius: 8px; }
+  .sk-heading { width: 220px; height: 26px; }
+  .sk-row { display: flex; gap: 20px; }
+  .sk-card { width: 180px; aspect-ratio: 1; flex: none; border-radius: 8px; }
+  .status { position: relative; margin: auto 0 18px; color: var(--text-faint); font-size: 12px; }
+  @media (max-width: 860px) { .sk-side { display: none; } }
   .timeout { text-align: center; }
   .timeout p { display: flex; gap: 8px; align-items: center; color: var(--warning); margin: 0 0 14px; }
   .actions { display: flex; gap: 10px; justify-content: center; }
 
-  @keyframes spin { to { transform: rotate(360deg); } }
+  @keyframes shimmer { from { background-position: 100% 0; } to { background-position: -100% 0; } }
 </style>

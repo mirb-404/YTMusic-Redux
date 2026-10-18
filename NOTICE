@@ -16,6 +16,10 @@ Portions (the YouTube Music bridge script, companion server protocol and setting
 are derived from YouTube Music Desktop App, Copyright (C) the YTMDesktop team, licensed under
 GPL-3.0: https://github.com/ytmdesktop/ytmdesktop
 
+Features ported from ytmdesktop2 by Venipa (CC0): https://github.com/Venipa/ytmdesktop2
+The performance patches it bundles (src-tauri/src/ytm/vendor: YouTube CPU Tamer and rm3) are
+Copyright CY Fung, MIT License; their license texts are kept in those files.
+
 Ratio volume is based on https://greasyfork.org/en/scripts/397686 by Marco Pfeiffer.
 Icons are from Material Icons by Google, Apache License 2.0.
 Lyrics are provided by LRCLIB (https://lrclib.net).

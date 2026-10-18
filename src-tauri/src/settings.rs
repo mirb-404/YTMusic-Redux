@@ -72,11 +72,18 @@ pub struct Playback {
     /// Seconds to fade out the end of a track and fade in the next; 0 turns it off.
     pub crossfade_seconds: u32,
     pub equalizer: Equalizer,
+    /// Removes ads from YTM's responses and skips any that still play.
+    pub block_ads: bool,
+    /// Moves on as soon as a track you have disliked starts.
+    pub skip_disliked: bool,
+    /// YouTube's quality name for music videos ("auto", "hd720", "hd1080", "hd1440", "hd2160").
+    pub video_quality: String,
 }
 
 /// Center frequencies (Hz) of the equalizer bands.
 pub const EQ_BANDS: [u32; 10] = [32, 64, 125, 250, 500, 1000, 2000, 4000, 8000, 16000];
 pub const EQ_MAX_GAIN: i8 = 12;
+pub const VIDEO_QUALITIES: [&str; 5] = ["auto", "hd720", "hd1080", "hd1440", "hd2160"];
 
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize, Default)]
 #[serde(rename_all = "camelCase", default)]
@@ -98,6 +105,9 @@ impl Default for Playback {
             playback_rate: 100,
             crossfade_seconds: 0,
             equalizer: Equalizer::default(),
+            block_ads: true,
+            skip_disliked: false,
+            video_quality: "auto".into(),
         }
     }
 }
@@ -185,6 +195,9 @@ impl Settings {
         }
         if !(50..=200).contains(&self.playback.playback_rate) {
             return Err("playback speed must be between 50% and 200%".into());
+        }
+        if !VIDEO_QUALITIES.contains(&self.playback.video_quality.as_str()) {
+            return Err("unknown video quality".into());
         }
         if self.playback.crossfade_seconds > 12 {
             return Err("fade length must be at most 12 seconds".into());

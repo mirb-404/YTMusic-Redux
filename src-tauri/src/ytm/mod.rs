@@ -12,6 +12,28 @@ use tauri::{AppHandle, Manager, Runtime, Url, Webview, WebviewBuilder, WebviewUr
 pub const YTM_HOME: &str = "https://music.youtube.com/";
 pub const LABEL: &str = "ytm";
 const MODERN_THEME: &str = include_str!("theme.css");
+/// Third-party performance patches for YTM's page (from ytmdesktop2): a CPU tamer that
+/// coalesces the page's timers onto animation frames, and rm3, which recycles Polymer
+/// components instead of leaking them. Exposed as `window.__YTMR_PERF__`, which the bridge
+/// calls once the player is ready.
+const PERF_SCRIPT: &str = concat!(
+    "(() => {
+",
+    include_str!("vendor/cpu-tamer.js"),
+    "
+",
+    include_str!("vendor/rm3.js"),
+    r#"
+window.__YTMR_PERF__ = () => {
+  try { injectRm3(); } catch (e) { console.warn("YTMusic Redux: rm3 skipped", e); }
+  let gpu = false;
+  try { gpu = !!document.createElement("canvas").getContext("webgl"); } catch {}
+  try { (gpu ? injectCpuTamerByAnimationFrame : injectCpuTamerByDomMutation).call(window, null); }
+  catch (e) { console.warn("YTMusic Redux: CPU tamer skipped", e); }
+};
+})();
+"#
+);
 
 /// The Modern UI stylesheet when enabled.
 pub fn modern_css(app: &AppHandle) -> Option<&'static str> {
@@ -24,6 +46,8 @@ pub fn audio_config(s: &Settings) -> Value {
         "showVideos": s.playback.show_videos,
         "playbackRate": s.playback.playback_rate,
         "crossfadeSeconds": s.playback.crossfade_seconds,
+        "skipDisliked": s.playback.skip_disliked,
+        "videoQuality": s.playback.video_quality,
         "equalizer": s.playback.equalizer,
         "eqBands": crate::settings::EQ_BANDS,
     })
@@ -196,8 +220,11 @@ pub fn create(app: &AppHandle) -> tauri::Result<()> {
     // The theme is applied at document start so YTM never paints unstyled; the bridge
     // config fetched later corrects it if the setting changed since this view was created.
     let theme = serde_json::to_string(&modern_css(app)).unwrap_or_else(|_| "null".into());
+    let adblock = settings.playback.block_ads;
     let builder = WebviewBuilder::new(LABEL, WebviewUrl::External(start_url))
         .initialization_script(format!("window.__YTMR_THEME__ = {theme};
+window.__YTMR_ADBLOCK__ = {adblock};
+{PERF_SCRIPT}
 {}", bridge::SCRIPT))
         .additional_browser_args(&ctx.browser_args)
         .background_color(windows::BACKGROUND)
@@ -285,15 +312,64 @@ pub fn recreate(app: &AppHandle) -> tauri::Result<()> {
     create(app)
 }
 
+/// Goes to YTM's home page inside the running app. Reloading the URL instead would restart
+/// the whole page, which takes seconds; the full load remains the fallback while the bridge
+/// is not up (a stuck first load, or a login page).
 pub fn navigate_home(app: &AppHandle) {
-    if let Some(view) = webview(app) {
+    let Some(view) = webview(app) else { return };
+    if app_ctx(app).memory.read(|m| m.ytm_view_loading) {
         let _ = view.navigate(YTM_HOME.parse().unwrap());
+    } else {
+        call(app, "navigateHome", &[]);
+    }
+}
+
+/// What a shared link opens: a track, or any other YTM page.
+#[derive(Debug, PartialEq)]
+pub enum SharedLink {
+    Track { video_id: String, playlist_id: Option<String> },
+    Page(Url),
+}
+
+/// Maps a YouTube Music, YouTube or youtu.be URL (any scheme, so `ytmr://` swapped in for
+/// `https://` works) to what it opens in YTM. Radio and mix ids (`RD…`) are dropped from
+/// track links: YTM then shows "Radio is starting…" instead of playing the track.
+pub fn shared_link(url: &Url) -> Option<SharedLink> {
+    let host = url.host_str()?.trim_start_matches("www.").trim_start_matches("m.");
+    let query = |key: &str| url.query_pairs().find(|(k, _)| k == key).map(|(_, v)| v.into_owned()).filter(|v| !v.is_empty());
+    let segments: Vec<&str> = url.path_segments().map(|s| s.filter(|p| !p.is_empty()).collect()).unwrap_or_default();
+    let playlist_id = query("list").filter(|l| !l.starts_with("RD"));
+    let track = |video_id: &str| SharedLink::Track { video_id: video_id.to_string(), playlist_id: playlist_id.clone() };
+    let page = |path: &str| format!("{YTM_HOME}{path}").parse().ok().map(SharedLink::Page);
+    match (host, segments.as_slice()) {
+        ("youtu.be", [id]) => Some(track(id)),
+        ("youtube.com" | "music.youtube.com", ["watch"]) => query("v").map(|v| track(&v)),
+        ("youtube.com" | "music.youtube.com", ["shorts" | "embed", id]) => Some(track(id)),
+        ("youtube.com" | "music.youtube.com", ["playlist"]) => page(&format!("playlist?list={}", query("list")?)),
+        ("youtube.com" | "music.youtube.com", ["channel", id]) => page(&format!("channel/{id}")),
+        ("youtube.com" | "music.youtube.com", [handle]) if handle.starts_with('@') => page(handle),
+        _ => None,
     }
 }
 
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn maps_shared_links() {
+        let track = |v: &str, l: Option<&str>| Some(SharedLink::Track { video_id: v.into(), playlist_id: l.map(Into::into) });
+        let page = |p: &str| Some(SharedLink::Page(format!("{YTM_HOME}{p}").parse().unwrap()));
+        assert_eq!(shared_link(&u("ytmr://music.youtube.com/watch?v=abc&list=PL1")), track("abc", Some("PL1")));
+        assert_eq!(shared_link(&u("ytmr://www.youtube.com/watch?v=abc&list=RDAMVMabc")), track("abc", None));
+        assert_eq!(shared_link(&u("ytmr://youtu.be/abc")), track("abc", None));
+        assert_eq!(shared_link(&u("ytmr://m.youtube.com/shorts/abc")), track("abc", None));
+        assert_eq!(shared_link(&u("ytmr://music.youtube.com/playlist?list=PL1")), page("playlist?list=PL1"));
+        assert_eq!(shared_link(&u("ytmr://www.youtube.com/channel/UC1")), page("channel/UC1"));
+        assert_eq!(shared_link(&u("ytmr://youtube.com/@artist")), page("@artist"));
+        assert_eq!(shared_link(&u("ytmr://music.youtube.com/")), None);
+        assert_eq!(shared_link(&u("ytmr://example.com/watch?v=abc")), None);
+    }
 
     fn u(s: &str) -> Url {
         s.parse().unwrap()

@@ -63,7 +63,8 @@ pub struct Player {
     pub volume: f64,
     pub muted: bool,
     pub ad_playing: bool,
-    pub queue: Option<Queue>,
+    /// Shared, so publishing a state change does not copy the whole queue.
+    pub queue: Option<Arc<Queue>>,
 }
 
 #[derive(Debug, Clone, PartialEq, Serialize)]
@@ -207,12 +208,31 @@ impl PlayerStore {
         self.tx.subscribe()
     }
 
+    /// Publishes only real changes. YTM reports the same values over and over, and every
+    /// publish wakes each subscriber and re-sends the state to the UI webviews.
     fn modify(&self, f: impl FnOnce(&mut PlayerState)) {
-        self.tx.send_modify(|state| f(Arc::make_mut(state)));
+        self.tx.send_if_modified(|state| {
+            let mut next = (**state).clone();
+            f(&mut next);
+            if next == **state {
+                return false;
+            }
+            *state = Arc::new(next);
+            true
+        });
     }
 
+    /// YTM reports progress several times a second. Subscribers need whole seconds and
+    /// seeks, and the UI interpolates in between, so only those are published.
     pub fn update_progress(&self, progress: f64) {
-        self.modify(|s| s.player.video_progress = progress);
+        self.tx.send_if_modified(|state| {
+            let old = state.player.video_progress;
+            if old.floor() == progress.floor() && (progress - old).abs() < 1.0 {
+                return false;
+            }
+            Arc::make_mut(state).player.video_progress = progress;
+            true
+        });
     }
 
     /// `state` is the raw YTM player state (-1 unstarted, 0 ended, 1 playing, 2 paused, 3 buffering, 5 cued).
@@ -266,6 +286,12 @@ impl PlayerStore {
                 selected_item_index,
             }
         });
+        // An unchanged queue keeps its allocation, so the comparison in `modify` stays cheap.
+        let current = self.get();
+        let queue = match (&current.player.queue, queue) {
+            (Some(old), Some(new)) if **old == new => Some(old.clone()),
+            (_, new) => new.map(Arc::new),
+        };
         self.modify(|s| {
             s.player.queue = queue;
             if let Some(video) = s.video.as_mut() {

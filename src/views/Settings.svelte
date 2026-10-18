@@ -229,6 +229,19 @@
                 <Row title="Show music videos" description="Off plays the audio-only song version where one exists and shows artwork instead of video">
                   <Toggle label="Show music videos" checked={s.playback.showVideos} onchange={(v) => set("playback.showVideos", v)} />
                 </Row>
+                <Row title="Block ads" description="Removes ads before they load and skips any that still play">
+                  <Toggle label="Block ads" checked={s.playback.blockAds} onchange={(v) => set("playback.blockAds", v)} />
+                </Row>
+                <Row title="Skip disliked songs" description="Moves to the next track as soon as one you have disliked starts">
+                  <Toggle label="Skip disliked songs" checked={s.playback.skipDisliked} onchange={(v) => set("playback.skipDisliked", v)} />
+                </Row>
+                <Row title="Music video quality" description="Preferred resolution when it is available">
+                  <div class="segmented">
+                    {#each [["auto", "Auto"], ["hd720", "720p"], ["hd1080", "1080p"], ["hd1440", "1440p"], ["hd2160", "4K"]] as [value, label] (value)}
+                      <button class:active={s.playback.videoQuality === value} onclick={() => set("playback.videoQuality", value)}>{label}</button>
+                    {/each}
+                  </div>
+                </Row>
                 <Row title="Lyric captions" description="Show the current synced lyric line over YouTube Music, like subtitles">
                   <Toggle label="Lyric captions" checked={s.appearance.lyricsCaptions} onchange={(v) => set("appearance.lyricsCaptions", v)} />
                 </Row>

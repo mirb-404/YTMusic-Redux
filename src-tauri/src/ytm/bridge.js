@@ -28,6 +28,46 @@
   const playerApi = () => hook().ytmPlayerBar.playerApi;
   const ytmStore = () => hook().ytmStore;
 
+  // --- Ad blocking. Ads arrive as slots inside YTM's player and browse responses; they are
+  // removed before the page reads them. The hooks are installed here, before page scripts run,
+  // and check the setting on every response so it can change without a reload.
+  const adblock = {
+    enabled: window.__YTMR_ADBLOCK__ === true,
+    KEYS: ["adPlacements", "playerAds", "adSlots", "adBreakHeartbeatParams"],
+    strip(value) {
+      if (!this.enabled || !value || typeof value !== "object") return value;
+      for (const target of [value, value.playerResponse]) {
+        if (!target || typeof target !== "object") continue;
+        for (const key of this.KEYS) if (key in target) delete target[key];
+      }
+      return value;
+    },
+    // Ads that slip through are skipped: muted, run to their end, skip button pressed.
+    skip() {
+      if (!this.enabled) return;
+      const video = document.querySelector("#movie_player video");
+      if (video && Number.isFinite(video.duration)) {
+        video.muted = true;
+        video.currentTime = video.duration;
+      }
+      document.querySelector(".ytp-skip-ad-button, .ytp-ad-skip-button, .ytp-ad-skip-button-modern")?.click();
+    }
+  };
+  const parse = JSON.parse;
+  JSON.parse = function (...args) {
+    return adblock.strip(parse.apply(this, args));
+  };
+  const json = Response.prototype.json;
+  Response.prototype.json = function () {
+    return json.call(this).then((value) => adblock.strip(value));
+  };
+  let initialResponse;
+  Object.defineProperty(window, "ytInitialPlayerResponse", {
+    configurable: true,
+    get: () => initialResponse,
+    set: (value) => (initialResponse = adblock.strip(value))
+  });
+
   const waitFor = (predicate) =>
     new Promise((resolve) => {
       const interval = setInterval(() => {
@@ -89,7 +129,7 @@
       .ytmd-player-bar-control.sleep-timer-button.active { color: #fff; }
       ytmusic-player.ytmr-hide-video { contain: layout; }
       ytmusic-player.ytmr-hide-video #song-video, ytmusic-player.ytmr-hide-video:has(> #ytmr-art[src]) #song-image { visibility: hidden !important; }
-      #ytmr-art { display: none; position: absolute; inset: 0; width: 100%; height: 100%; object-fit: contain; z-index: 5; pointer-events: none; }
+      #ytmr-art { display: none; position: absolute; inset: 0; width: 100% !important; height: 100% !important; max-width: none !important; object-fit: contain !important; transform: none !important; border-radius: 0 !important; z-index: 5; pointer-events: none; }
       ytmusic-player.ytmr-hide-video #ytmr-art[src] { display: block; }
     `;
     document.head.appendChild(css);
@@ -323,7 +363,9 @@
   function hookPlayerApiEvents() {
     const sendStoreState = () => {
       const state = ytmStore().getState();
+      if (state.player.adPlaying) adblock.skip();
       const videoId = playerApi().getPlayerResponse()?.videoDetails?.videoId;
+      audio.skipIfDisliked(videoId, currentLikeStatus(videoId));
       // Only the fields needed to operate are forwarded; the store contains sensitive data.
       invoke("ytm_store_state", {
         queue: state.queue ?? null,
@@ -489,8 +531,22 @@
     trackId: "",
     manualSwitch: false,
     media: () => document.querySelector("#movie_player video") || document.querySelector("video"),
+    skippedId: "",
+    skipIfDisliked(videoId, status) {
+      if (!this.config?.skipDisliked || status !== "DISLIKE" || !videoId || this.skippedId === videoId) return;
+      this.skippedId = videoId;
+      playerApi().nextVideo();
+    },
+    // YTM's player reads its quality preference from localStorage when a video loads.
+    applyQuality() {
+      const quality = this.config.videoQuality;
+      if (!quality || quality === "auto") return localStorage.removeItem("yt-player-quality");
+      const now = Date.now();
+      localStorage.setItem("yt-player-quality", JSON.stringify({ data: quality, expiration: now + 30 * 86400000, creation: now }));
+    },
     set(config) {
       this.config = config;
+      this.applyQuality();
       this.applyRate();
       this.applyGraph();
       this.applyVideoMode();
@@ -533,7 +589,8 @@
       if (!player) return;
       const thumbnails = hook().ytmPlayerBar?.playerApi?.getPlayerResponse()?.videoDetails?.thumbnail?.thumbnails;
       const largest = thumbnails?.length ? [...thumbnails].sort((a, b) => b.width - a.width)[0].url : null;
-      const art = largest?.replace(/=w\d+-h\d+/, "=w1200-h1200") ?? null;
+      // The whole image at full size: googleusercontent URLs end in sizing and crop options.
+      const art = largest?.replace(/=w\d+-h\d+[^/]*$/, "=w1200-h1200-l90-rj") ?? null;
       let img = document.getElementById("ytmr-art");
       if (!img || img.parentNode !== player) {
         img?.remove();
@@ -710,6 +767,25 @@
     });
   }
 
+  // --- YTM's "Saved to Liked music" style toasts stay until dismissed; close them after 3 s.
+  function autoCloseToasts() {
+    const armed = new WeakSet();
+    const scan = () => {
+      for (const toast of document.querySelectorAll("tp-yt-paper-toast.paper-toast-open")) {
+        if (armed.has(toast)) continue;
+        armed.add(toast);
+        setTimeout(() => {
+          armed.delete(toast);
+          if (!toast.classList.contains("paper-toast-open")) return;
+          const close = toast.querySelector("#close-button button");
+          if (close) close.click();
+          else toast.close?.();
+        }, 3000);
+      }
+    };
+    new MutationObserver(scan).observe(document.body, { childList: true, subtree: true, attributes: true, attributeFilter: ["class"] });
+  }
+
   // --- Custom CSS
   function setCustomCss(css) {
     let el = document.getElementById("ytmr-custom-css");
@@ -839,6 +915,8 @@
     setCustomCss,
     setModernUi,
     setCaption,
+    setAdBlock: (on) => (adblock.enabled = on),
+    navigateHome: () => navigate({ browseEndpoint: { browseId: "FEmusic_home" } }),
     exitFullscreen: () => document.fullscreenElement && document.exitFullscreen(),
     setAudio: (config) => audio.set(config),
     // Replaced once the window controls exist.
@@ -896,5 +974,8 @@
     if (config.customCss !== null) setCustomCss(config.customCss);
     setModernUi(config.modernCss);
     audio.set(config.audio);
+    autoCloseToasts();
+    // As upstream does: after the player is up, so startup is not slowed down.
+    setTimeout(() => window.__YTMR_PERF__?.(), 250);
   })();
 })();

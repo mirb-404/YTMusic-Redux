@@ -79,6 +79,9 @@ pub fn apply(app: &AppHandle, old: Option<&Settings>, new: &Settings) {
             ytm::call(app, "setModernUi", &[css]);
             crate::windows::layout_main(app);
         }
+        if changed(|s| s.playback.block_ads) {
+            ytm::call(app, "setAdBlock", &[json!(new.playback.block_ads)]);
+        }
         if changed(|s| s.playback.ratio_volume) {
             let f = if new.playback.ratio_volume { "ratioVolume.enable" } else { "ratioVolume.disable" };
             ytm::call(app, f, &[]);

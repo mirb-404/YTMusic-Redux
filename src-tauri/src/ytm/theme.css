@@ -8,7 +8,9 @@ ytmusic-app {
   --ytmr-surface: #0f0f14;
   --ytmr-line: rgba(255, 255, 255, 0.08);
   --ytmusic-player-bar-height: 0px !important;
-  --ytmusic-background: transparent !important;
+  /* Opaque on purpose: YTM also colors play-button icons with it, which a transparent
+     value makes invisible (the sidebar's playlist play buttons). */
+  --ytmusic-background: var(--ytmr-bg) !important;
   --ytmusic-general-background-c: transparent !important;
   --ytmusic-player-page-background: transparent !important;
   --ytmusic-brand-background-solid: var(--ytmr-surface) !important;

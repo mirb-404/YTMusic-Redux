@@ -52,6 +52,9 @@ export type Settings = {
     playbackRate: number;
     crossfadeSeconds: number;
     equalizer: { enabled: boolean; gains: number[] };
+    blockAds: boolean;
+    skipDisliked: boolean;
+    videoQuality: string;
   };
   integrations: {
     companionServerEnabled: boolean;

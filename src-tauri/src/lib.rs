@@ -68,7 +68,8 @@ pub fn quit(app: &AppHandle) {
     app.exit(0);
 }
 
-/// Handles `ytmr://play/<videoId>[/<playlistId>]`.
+/// Handles `ytmr://play/<videoId>[/<playlistId>]` and shared links: a YouTube Music,
+/// YouTube or youtu.be URL with `ytmr://` in place of `https://`.
 fn handle_deep_link(app: &AppHandle, url: &str) {
     log::info!("Handling protocol url");
     let Some(rest) = url.split("://").nth(1) else { return };
@@ -78,6 +79,23 @@ fn handle_deep_link(app: &AppHandle, url: &str) {
             let playlist_id = parts.next().map(str::to_string);
             ytm::execute(app, &ytm::Command::ChangeVideo { video_id: Some(video_id.to_string()), playlist_id });
         }
+        return;
+    }
+    let Some(link) = url.parse().ok().as_ref().and_then(ytm::shared_link) else { return };
+    match link {
+        ytm::SharedLink::Track { video_id, playlist_id } => {
+            ytm::execute(app, &ytm::Command::ChangeVideo { video_id: Some(video_id), playlist_id });
+        }
+        ytm::SharedLink::Page(page) => {
+            if let Some(view) = ytm::webview(app) {
+                let _ = view.navigate(page);
+            }
+        }
+    }
+    if let Some(w) = app.get_window(windows::MAIN) {
+        let _ = w.show();
+        let _ = w.unminimize();
+        let _ = w.set_focus();
     }
 }
 
