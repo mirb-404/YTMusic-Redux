@@ -25,6 +25,8 @@ pub struct Memory {
     pub now_playing_open: bool,
     /// The bridge drew the window controls into YTM's header, so the app title bar is hidden.
     pub ytm_owns_header: bool,
+    /// The first-start tour of the app's controls covers the YTM view.
+    pub tour_open: bool,
 }
 
 pub struct MemoryStore {

@@ -7,6 +7,7 @@
   import Icon from "../components/Icon.svelte";
   import NowPlaying from "../components/NowPlaying.svelte";
   import PlayerBar from "../components/PlayerBar.svelte";
+  import Tour from "../components/Tour.svelte";
   import { api, bestThumbnail, onMemory, onPlayerState, onSettings, type Memory, type PlayerState, type Settings } from "../lib/api";
   import { LyricsTrack } from "../lib/lyrics.svelte";
   import { ProgressClock } from "../lib/progress.svelte";
@@ -26,7 +27,9 @@
   const nowPlayingOpen = $derived(memory?.nowPlayingOpen ?? false);
   // YTM's header carries the window controls whenever it is on screen: one header, not two.
   // It stays in fullscreen, where its window buttons give way to an exit button.
-  const showTitleBar = $derived(nowPlayingOpen || !memory?.ytmOwnsHeader);
+  const tourOpen = $derived(memory?.tourOpen ?? false);
+  // The tour also hides the YTM view, and points at controls in this title bar.
+  const showTitleBar = $derived(nowPlayingOpen || tourOpen || !memory?.ytmOwnsHeader);
   // A fullscreen window has nothing to drag or maximize.
   const drag = $derived(fullscreen ? undefined : true);
 
@@ -107,9 +110,11 @@
         <span class="logo"><Icon name="play" size={14} /></span>
         <span class="name" data-tauri-drag-region={drag}>YTMusic</span>
       </div>
-      <button class="icon-btn" title="Back" onclick={() => api.ytmHistory(false)}><Icon name="back" size={18} /></button>
-      <button class="icon-btn" title="Forward" onclick={() => api.ytmHistory(true)}><Icon name="forward" size={18} /></button>
-      <button class="icon-btn" title="Home" onclick={() => api.ytmNavigateHome()}><Icon name="home" size={18} /></button>
+      <div class="nav" data-tour="nav">
+        <button class="icon-btn" title="Back" onclick={() => api.ytmHistory(false)}><Icon name="back" size={18} /></button>
+        <button class="icon-btn" title="Forward" onclick={() => api.ytmHistory(true)}><Icon name="forward" size={18} /></button>
+        <button class="icon-btn" title="Home" onclick={() => api.ytmNavigateHome()}><Icon name="home" size={18} /></button>
+      </div>
     </div>
 
     <div class="center" data-tauri-drag-region={drag}>
@@ -134,9 +139,9 @@
       {#if devTools}
         <button class="icon-btn" title="YouTube Music developer tools" onclick={() => api.openYtmDevtools()}><Icon name="code" size={18} /></button>
       {/if}
-      <button class="menu-btn" title="Plugins" onclick={() => api.showPluginsMenu()}><Icon name="extension" size={16} />Plugins</button>
-      <button class="icon-btn" title="Mini player" onclick={() => api.toggleMiniPlayer()}><Icon name="mini" size={18} /></button>
-      <button class="icon-btn" title="Settings" onclick={() => api.openSettings()}><Icon name="settings" size={18} /></button>
+      <button class="menu-btn" data-tour="plugins" title="Plugins" onclick={() => api.showPluginsMenu()}><Icon name="extension" size={16} />Plugins</button>
+      <button class="icon-btn" data-tour="mini" title="Mini player" onclick={() => api.toggleMiniPlayer()}><Icon name="mini" size={18} /></button>
+      <button class="icon-btn" data-tour="settings" title="Settings" onclick={() => api.openSettings()}><Icon name="settings" size={18} /></button>
       <span class="divider"></span>
       {#if fullscreen}
         <button class="win-btn" title="Exit full screen (F11)" onclick={() => api.toggleFullscreen()}><Icon name="fullscreenExit" size={18} /></button>
@@ -207,6 +212,10 @@
   {#if modernUi}
     <PlayerBar {player} {memory} {clock} {showVideos} {fullscreen} />
   {/if}
+
+  {#if tourOpen}
+    <Tour onclose={() => api.setTourOpen(false)} />
+  {/if}
 </div>
 
 <style>
@@ -224,7 +233,7 @@
     border-bottom: 1px solid var(--border);
   }
 
-  .left, .right { display: flex; align-items: center; gap: 2px; }
+  .left, .right, .nav { display: flex; align-items: center; gap: 2px; }
   .right { justify-content: flex-end; }
   .left .icon-btn, .right .icon-btn { width: 30px; height: 30px; }
 

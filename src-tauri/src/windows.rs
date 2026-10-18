@@ -97,6 +97,8 @@ pub fn emit_window_state(app: &AppHandle) {
 /// after the resize lands and so would lay out the views for the old one.
 static APP_FULLSCREEN: AtomicBool = AtomicBool::new(false);
 static VIDEO_FULLSCREEN: AtomicBool = AtomicBool::new(false);
+/// The window was maximized when fullscreen began, and is maximized again when it ends.
+static MAXIMIZED_BEFORE_FULLSCREEN: AtomicBool = AtomicBool::new(false);
 
 fn is_fullscreen() -> bool {
     APP_FULLSCREEN.load(Ordering::Relaxed) || VIDEO_FULLSCREEN.load(Ordering::Relaxed)
@@ -117,13 +119,28 @@ pub fn layout_main(app: &AppHandle) {
     let bottom = if ctx.settings.get().appearance.modern_ui { PLAYER_BAR_HEIGHT } else { 0.0 };
     let _ = view.set_position(LogicalPosition::new(0.0, top));
     let _ = view.set_size(LogicalSize::new(size.width, (size.height - top - bottom).max(1.0)));
-    let (loading, covered) = ctx.memory.read(|m| (m.ytm_view_loading, m.now_playing_open && !video));
+    let (loading, covered) = ctx.memory.read(|m| (m.ytm_view_loading, (m.now_playing_open || m.tour_open) && !video));
     let _ = if loading || covered { view.hide() } else { view.show() };
 }
 
 fn apply_fullscreen(app: &AppHandle) {
     if let Some(w) = app.get_window(MAIN) {
-        let _ = w.set_fullscreen(is_fullscreen());
+        let on = is_fullscreen();
+        let was = w.is_fullscreen().unwrap_or(false);
+        if on && !was {
+            // A maximized frameless window keeps its client area at the monitor's work area,
+            // even in fullscreen, which leaves the taskbar's strip unpainted (white). Leaving
+            // the maximized state first lets fullscreen cover the whole monitor.
+            let maximized = w.is_maximized().unwrap_or(false);
+            MAXIMIZED_BEFORE_FULLSCREEN.store(maximized, Ordering::Relaxed);
+            if maximized {
+                let _ = w.unmaximize();
+            }
+        }
+        let _ = w.set_fullscreen(on);
+        if !on && was && MAXIMIZED_BEFORE_FULLSCREEN.swap(false, Ordering::Relaxed) {
+            let _ = w.maximize();
+        }
         layout_main(app);
         emit_window_state(app);
     }
@@ -144,6 +161,17 @@ pub fn toggle_fullscreen(app: &AppHandle) {
         ytm::call(app, "exitFullscreen", &[]);
     }
     apply_fullscreen(app);
+}
+
+/// Shows or hides the app tour. It covers the YTM view so it can dim the whole window, and
+/// finishing it once marks it seen so it is not shown on the next start.
+pub fn set_tour_open(app: &AppHandle, open: bool) {
+    let ctx = app_ctx(app);
+    if !open {
+        ctx.state.update(|s| s.tour_seen = true);
+    }
+    ctx.memory.update(app, |m| m.tour_open = open);
+    layout_main(app);
 }
 
 /// Shows or hides the app's now playing view in place of the YTM view.

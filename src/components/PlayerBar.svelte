@@ -76,7 +76,7 @@
 
 <footer class="bar">
   <section class="track">
-    <button class="art" title="Now playing" disabled={!video} onclick={() => api.command("togglePlayerPage")}>
+    <button class="art" data-tour="art" title="Now playing" disabled={!video} onclick={() => api.command("togglePlayerPage")}>
       {#if art}{#key art}<img src={art} alt="" in:fade={{ duration: 220 }} />{/key}{:else}<Icon name="music" size={22} />{/if}
       <span class="overlay"><Icon name="expand" size={18} /></span>
     </button>
@@ -99,7 +99,7 @@
   </section>
 
   <section class="center">
-    <div class="controls">
+    <div class="controls" data-tour="controls">
       <button class="icon-btn" title="Shuffle" disabled={!video} onclick={() => api.command("shuffle")}><Icon name="shuffle" size={20} /></button>
       <button class="icon-btn big" title="Previous" disabled={!video} onclick={() => api.command("previous")}><Icon name="previous" size={24} /></button>
       <button class="play" title={playing ? "Pause" : "Play"} disabled={!video} onclick={() => api.command("playPause")}>
@@ -116,7 +116,7 @@
         <Icon name={repeatMode === 2 ? "repeatOne" : "repeat"} size={20} />
       </button>
     </div>
-    <div class="seek">
+    <div class="seek" data-tour="seek">
       <span class="time">{formatTime(elapsed)}</span>
       <WaveSlider value={elapsed} max={duration} playing={playing && !buffering} disabled={!video || video.isLive || adPlaying} onseek={seek} />
       <span class="time end">{video?.isLive ? "LIVE" : formatTime(duration)}</span>
@@ -125,7 +125,7 @@
 
   <section class="extras">
     <button class="icon-btn" title="Add to playlist" disabled={!video} onclick={() => api.command("addToPlaylist")}><Icon name="playlistAdd" size={20} /></button>
-    <div class="sleep">
+    <div class="sleep" data-tour="sleep">
       <button class="icon-btn" class:active={sleepLeft !== null} title="Sleep timer" onclick={() => (sleepOpen = !sleepOpen)}>
         <Icon name="timer" size={20} />
       </button>
@@ -140,9 +140,10 @@
         </div>
       {/if}
     </div>
-    <button class="icon-btn" class:active={nowPlayingOpen} title="Lyrics" onclick={() => api.setNowPlayingOpen(!nowPlayingOpen)}><Icon name="lyrics" size={20} /></button>
+    <button class="icon-btn" data-tour="lyrics" class:active={nowPlayingOpen} title="Lyrics" onclick={() => api.setNowPlayingOpen(!nowPlayingOpen)}><Icon name="lyrics" size={20} /></button>
     <button
       class="icon-btn"
+      data-tour="video"
       class:active={showVideos}
       title={showVideos ? "Music videos on (switch to audio only)" : "Audio only (switch to music videos)"}
       onclick={() => api.setSetting("playback.showVideos", !showVideos)}
@@ -150,7 +151,7 @@
       <Icon name={showVideos ? "video" : "videoOff"} size={20} />
     </button>
     <button class="icon-btn" title="Queue" disabled={!video} onclick={() => api.command("togglePlayerPage")}><Icon name="queue" size={20} /></button>
-    <div class="volume" onwheel={wheelVolume}>
+    <div class="volume" data-tour="volume" onwheel={wheelVolume}>
       <button class="icon-btn" title={muted ? "Unmute" : "Mute"} onclick={() => api.command(muted ? "unmute" : "mute")}>
         <Icon name={muted || volume === 0 ? "muted" : volume < 50 ? "volumeLow" : "volume"} size={20} />
       </button>
@@ -164,7 +165,7 @@
         oninput={(e) => setVolume(Number(e.currentTarget.value))}
       />
     </div>
-    <button class="icon-btn" title={fullscreen ? "Exit full screen (F11)" : "Full screen (F11)"} onclick={() => api.toggleFullscreen()}>
+    <button class="icon-btn" data-tour="fullscreen" title={fullscreen ? "Exit full screen (F11)" : "Full screen (F11)"} onclick={() => api.toggleFullscreen()}>
       <Icon name={fullscreen ? "fullscreenExit" : "fullscreen"} size={20} />
     </button>
   </section>

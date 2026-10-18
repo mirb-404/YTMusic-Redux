@@ -112,6 +112,11 @@ pub fn toggle_fullscreen(app: AppHandle) {
 }
 
 #[tauri::command]
+pub fn set_tour_open(app: AppHandle, open: bool) {
+    windows::set_tour_open(&app, open);
+}
+
+#[tauri::command]
 pub fn set_now_playing_open(app: AppHandle, open: bool) {
     windows::set_now_playing_open(&app, open);
 }

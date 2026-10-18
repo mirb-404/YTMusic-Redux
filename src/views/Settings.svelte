@@ -158,6 +158,9 @@
                 <Row title="Start minimized" description="Start in the tray without showing the window">
                   <Toggle label="Start minimized" checked={s.general.startMinimized} onchange={(v) => set("general.startMinimized", v)} />
                 </Row>
+                <Row title="App tour" description="Walk through the app's controls again">
+                  <button class="btn" onclick={() => { api.setTourOpen(true); api.showMainWindow(); }}>Show tour</button>
+                </Row>
                 <Row title="Disable hardware acceleration" restart>
                   <Toggle label="Disable hardware acceleration" checked={s.general.disableHardwareAcceleration} onchange={(v) => set("general.disableHardwareAcceleration", v)} />
                 </Row>

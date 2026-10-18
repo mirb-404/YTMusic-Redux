@@ -84,6 +84,7 @@ export type Memory = {
   sleepTimerEndsAt: number | null;
   nowPlayingOpen: boolean;
   ytmOwnsHeader: boolean;
+  tourOpen: boolean;
 };
 
 export type LyricLine = { time: number; text: string };
@@ -109,6 +110,7 @@ export const api = {
   toggleMiniPlayer: () => invoke<void>("toggle_mini_player"),
   toggleFullscreen: () => invoke<void>("toggle_fullscreen"),
   setNowPlayingOpen: (open: boolean) => invoke<void>("set_now_playing_open", { open }),
+  setTourOpen: (open: boolean) => invoke<void>("set_tour_open", { open }),
   getLyrics: () => invoke<Lyrics | null>("get_lyrics"),
   setCaption: (text: string | null) => invoke<void>("ytm_set_caption", { text }),
   showMainWindow: () => invoke<void>("show_main_window"),

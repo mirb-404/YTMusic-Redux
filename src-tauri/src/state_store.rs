@@ -35,6 +35,8 @@ pub struct AppState {
     pub companion_tokens: Vec<AuthToken>,
     /// Pending Last.fm auth token awaiting user approval in the browser.
     pub lastfm_token: Option<String>,
+    /// The first-start tour was finished or skipped.
+    pub tour_seen: bool,
 }
 
 impl Default for AppState {
@@ -47,6 +49,7 @@ impl Default for AppState {
             window_maximized: false,
             companion_tokens: Vec::new(),
             lastfm_token: None,
+            tour_seen: false,
         }
     }
 }

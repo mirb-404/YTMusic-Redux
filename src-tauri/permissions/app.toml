@@ -33,6 +33,7 @@ permissions = [
   "allow-show-plugins-menu",
   "allow-toggle-fullscreen",
   "allow-set-now-playing-open",
+  "allow-set-tour-open",
   "allow-get-lyrics",
   "allow-ytm-set-caption",
   "allow-show-main-window",

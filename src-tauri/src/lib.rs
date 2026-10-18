@@ -116,7 +116,11 @@ fn setup(app: &mut tauri::App) -> Result<(), Box<dyn std::error::Error>> {
         browser_args,
     });
     let ctx = app_ctx(&handle);
-    ctx.memory.update(&handle, |m| m.secure_storage_available = state_store::secrets::available());
+    let tour_open = !ctx.state.read(|s| s.tour_seen);
+    ctx.memory.update(&handle, |m| {
+        m.secure_storage_available = state_store::secrets::available();
+        m.tour_open = tour_open;
+    });
 
     tray::create(&handle)?;
     app.on_menu_event(plugins_menu::handle_event);
@@ -208,6 +212,7 @@ pub fn run() {
             commands::show_plugins_menu,
             commands::toggle_fullscreen,
             commands::set_now_playing_open,
+            commands::set_tour_open,
             commands::get_lyrics,
             commands::ytm_set_caption,
             commands::show_main_window,

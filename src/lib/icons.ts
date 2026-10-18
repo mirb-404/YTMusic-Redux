@@ -1,6 +1,7 @@
 // Icon paths from Material Icons (Apache License 2.0, https://github.com/google/material-design-icons).
 export const icons = {
   play: "M8 5v14l11-7z",
+  check: "M9 16.17 4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41z",
   pause: "M6 19h4V5H6v14zm8-14v14h4V5h-4z",
   next: "M6 18l8.5-6L6 6v12zM16 6v12h2V6h-2z",
   previous: "M6 6h2v12H6zm3.5 6l8.5 6V6z",
