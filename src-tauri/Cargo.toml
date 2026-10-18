@@ -1,6 +1,6 @@
 [package]
 name = "ytmusic-redux"
-version = "2.1.0"
+version = "2.2.0"
 description = "YTMusic Redux: a fast YouTube Music desktop client built with Tauri and Rust"
 authors = ["Mirang Bhandari", "YTMusic Redux contributors"]
 edition = "2021"
