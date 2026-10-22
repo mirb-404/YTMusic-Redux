@@ -128,6 +128,8 @@ fn setup(app: &mut tauri::App) -> Result<(), Box<dyn std::error::Error>> {
     ytm::create(&handle)?;
     integrations::apply(&handle, None, &ctx.settings.get());
     tauri::async_runtime::spawn(taskbar::run(handle.clone()));
+    #[cfg(windows)]
+    taskbar::repair_pinned_icons();
 
     // Forward player state to the title bar and mini player.
     let forward_app = handle.clone();

@@ -777,22 +777,49 @@
         f.Q.value = 1.1;
         return f;
       });
+      // Stereo width as a matrix of the two channels: each output keeps (1 + w) / 2 of its
+      // own channel and takes (1 - w) / 2 of the other, so w = 1 leaves the mix unchanged.
+      const split = ctx.createChannelSplitter(2);
+      const merge = ctx.createChannelMerger(2);
+      const own = [ctx.createGain(), ctx.createGain()];
+      const cross = [ctx.createGain(), ctx.createGain()];
+      for (const ch of [0, 1]) {
+        split.connect(own[ch], ch).connect(merge, 0, ch);
+        split.connect(cross[ch], 1 - ch).connect(merge, 0, ch);
+      }
+      // The leveler compresses loud passages and lifts the result back up; with a ratio
+      // of 1 it is a pass-through.
+      const leveler = ctx.createDynamicsCompressor();
+      const makeup = ctx.createGain();
       const fade = ctx.createGain();
-      filters.reduce((prev, f) => (prev.connect(f), f), source).connect(fade);
+      filters.reduce((prev, f) => (prev.connect(f), f), source).connect(split);
+      merge.connect(leveler).connect(makeup).connect(fade);
       fade.connect(ctx.destination);
       el.addEventListener("play", () => ctx.resume());
       el.addEventListener("playing", () => this.applyRate());
       el.addEventListener("timeupdate", () => this.updateFade());
       ctx.resume();
-      this.graph = { ctx, el, filters, fade };
+      this.graph = { ctx, el, filters, own, cross, leveler, makeup, fade };
       return this.graph;
     },
     applyGraph() {
-      const { equalizer, crossfadeSeconds } = this.config;
-      if (!this.graph && !equalizer.enabled && crossfadeSeconds === 0) return;
+      const { equalizer, crossfadeSeconds, volumeLeveler, stereoWidth } = this.config;
+      if (!this.graph && !equalizer.enabled && crossfadeSeconds === 0 && !volumeLeveler && stereoWidth === 100) return;
       const g = this.ensureGraph();
       if (!g) return;
-      g.filters.forEach((f, i) => f.gain.setTargetAtTime(equalizer.enabled ? equalizer.gains[i] : 0, g.ctx.currentTime, 0.05));
+      const now = g.ctx.currentTime;
+      g.filters.forEach((f, i) => f.gain.setTargetAtTime(equalizer.enabled ? equalizer.gains[i] : 0, now, 0.05));
+      const w = stereoWidth / 100;
+      g.own.forEach((n) => n.gain.setTargetAtTime((1 + w) / 2, now, 0.05));
+      g.cross.forEach((n) => n.gain.setTargetAtTime((1 - w) / 2, now, 0.05));
+      const c = g.leveler;
+      c.threshold.value = volumeLeveler ? -24 : 0;
+      c.knee.value = volumeLeveler ? 24 : 0;
+      c.ratio.value = volumeLeveler ? 4 : 1;
+      c.attack.value = 0.005;
+      c.release.value = 0.3;
+      // About +6 dB, which the compression took off the loudest parts.
+      g.makeup.gain.setTargetAtTime(volumeLeveler ? 2 : 1, now, 0.05);
       this.updateFade();
     },
     updateFade() {

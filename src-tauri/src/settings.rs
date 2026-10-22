@@ -85,6 +85,10 @@ pub struct Playback {
     /// Seconds to fade out the end of a track and fade in the next; 0 turns it off.
     pub crossfade_seconds: u32,
     pub equalizer: Equalizer,
+    /// Evens out loudness between quiet and loud passages and tracks (a compressor).
+    pub volume_leveler: bool,
+    /// Stereo width in percent: 0 is mono, 100 leaves the mix as it is, 200 widens it.
+    pub stereo_width: u32,
     /// Removes ads from YTM's responses and skips any that still play.
     pub block_ads: bool,
     /// Moves on as soon as a track you have disliked starts.
@@ -115,10 +119,12 @@ impl Default for Playback {
             progress_in_taskbar: false,
             ratio_volume: false,
             show_videos: true,
-            open_player_on_play: true,
+            open_player_on_play: false,
             playback_rate: 100,
             crossfade_seconds: 0,
             equalizer: Equalizer::default(),
+            volume_leveler: false,
+            stereo_width: 100,
             block_ads: true,
             skip_disliked: false,
             video_quality: "auto".into(),
@@ -215,6 +221,9 @@ impl Settings {
         }
         if self.playback.crossfade_seconds > 12 {
             return Err("fade length must be at most 12 seconds".into());
+        }
+        if self.playback.stereo_width > 200 {
+            return Err("stereo width must be at most 200%".into());
         }
         if self.playback.equalizer.gains.iter().any(|g| g.abs() > EQ_MAX_GAIN) {
             return Err(format!("equalizer gains must be within ±{EQ_MAX_GAIN} dB"));

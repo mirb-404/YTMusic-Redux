@@ -43,6 +43,8 @@ pub fn audio_config(s: &Settings) -> Value {
         "skipDisliked": s.playback.skip_disliked,
         "videoQuality": s.playback.video_quality,
         "equalizer": s.playback.equalizer,
+        "volumeLeveler": s.playback.volume_leveler,
+        "stereoWidth": s.playback.stereo_width,
         "eqBands": crate::settings::EQ_BANDS,
     })
 }

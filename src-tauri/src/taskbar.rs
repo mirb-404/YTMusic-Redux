@@ -1,4 +1,5 @@
-//! Taskbar integration: track progress and (Windows) thumbnail toolbar buttons.
+//! Taskbar integration: track progress, (Windows) thumbnail toolbar buttons and the icon
+//! of pinned shortcuts.
 
 use crate::{app_ctx, windows as app_windows};
 use tauri::window::{ProgressBarState, ProgressBarStatus};
@@ -37,6 +38,104 @@ pub async fn run(app: AppHandle) {
             #[cfg(windows)]
             thumbbar::update(&app, has_video, playing);
         }
+    }
+}
+
+#[cfg(windows)]
+pub use pins::repair_icons as repair_pinned_icons;
+
+#[cfg(windows)]
+mod pins {
+    //! The installer's shortcuts take their icon from a copy Windows Installer keeps in
+    //! `C:\Windows\Installer\{ProductCode}`. Shortcuts pinned to the taskbar or Start copy
+    //! that location, and every update installs under a new product code and removes the old
+    //! folder, so the pins show a blank file icon. Pins that start this executable are moved
+    //! to the icon inside the executable itself, which updates keep in place.
+
+    use std::path::{Path, PathBuf};
+    use windows::core::{Interface, PCWSTR};
+    use windows::Win32::System::Com::{
+        CoCreateInstance, CoInitializeEx, CoUninitialize, IPersistFile, CLSCTX_INPROC_SERVER, COINIT_APARTMENTTHREADED,
+        STGM_READWRITE,
+    };
+    use windows::Win32::UI::Shell::{IShellLinkW, SHChangeNotify, ShellLink, SHCNE_ASSOCCHANGED, SHCNF_IDLIST};
+
+    fn wide(path: &Path) -> Vec<u16> {
+        use std::os::windows::ffi::OsStrExt;
+        path.as_os_str().encode_wide().chain([0]).collect()
+    }
+
+    fn from_wide(buf: &[u16]) -> String {
+        String::from_utf16_lossy(&buf[..buf.iter().position(|&c| c == 0).unwrap_or(buf.len())])
+    }
+
+    fn same_path(a: &str, b: &Path) -> bool {
+        Path::new(a).as_os_str().eq_ignore_ascii_case(b.as_os_str())
+    }
+
+    /// Points the shortcut's icon at `exe` when the shortcut starts `exe` but takes its icon
+    /// from somewhere else. Returns whether it changed the shortcut.
+    unsafe fn repair(link: &Path, exe: &Path) -> windows::core::Result<bool> {
+        let shell_link: IShellLinkW = CoCreateInstance(&ShellLink, None, CLSCTX_INPROC_SERVER)?;
+        let file: IPersistFile = shell_link.cast()?;
+        let link_w = wide(link);
+        file.Load(PCWSTR(link_w.as_ptr()), STGM_READWRITE)?;
+        let mut target = [0u16; 1024];
+        shell_link.GetPath(&mut target, std::ptr::null_mut(), 0)?;
+        if !same_path(&from_wide(&target), exe) {
+            return Ok(false);
+        }
+        let mut icon = [0u16; 1024];
+        let mut index = 0;
+        shell_link.GetIconLocation(&mut icon, &mut index)?;
+        let icon = from_wide(&icon);
+        // No icon location means the target's own icon, which is already right.
+        if icon.is_empty() || (same_path(&icon, exe) && index == 0) {
+            return Ok(false);
+        }
+        let exe_w = wide(exe);
+        shell_link.SetIconLocation(PCWSTR(exe_w.as_ptr()), 0)?;
+        file.Save(PCWSTR(link_w.as_ptr()), true)?;
+        Ok(true)
+    }
+
+    fn shortcut_dirs() -> Vec<PathBuf> {
+        let Some(appdata) = std::env::var_os("APPDATA").map(PathBuf::from) else { return Vec::new() };
+        let pinned = appdata.join(r"Microsoft\Internet Explorer\Quick Launch\User Pinned");
+        vec![pinned.join("TaskBar"), pinned.join("StartMenu"), appdata.join(r"Microsoft\Windows\Start Menu\Programs")]
+    }
+
+    /// Runs once per launch on its own thread, so the first start after an update fixes
+    /// the pins it broke.
+    pub fn repair_icons() {
+        let Ok(exe) = std::env::current_exe() else { return };
+        std::thread::spawn(move || unsafe {
+            if CoInitializeEx(None, COINIT_APARTMENTTHREADED).is_err() {
+                return;
+            }
+            let mut changed = false;
+            for dir in shortcut_dirs() {
+                let Ok(entries) = std::fs::read_dir(&dir) else { continue };
+                for path in entries.flatten().map(|e| e.path()) {
+                    if !path.extension().is_some_and(|ext| ext.eq_ignore_ascii_case("lnk")) {
+                        continue;
+                    }
+                    match repair(&path, &exe) {
+                        Ok(true) => {
+                            log::info!("Repaired the icon of shortcut {}", path.display());
+                            changed = true;
+                        }
+                        Ok(false) => {}
+                        Err(e) => log::debug!("Skipped shortcut {}: {e}", path.display()),
+                    }
+                }
+            }
+            // The taskbar keeps its cached blank icon until told that icons changed.
+            if changed {
+                SHChangeNotify(SHCNE_ASSOCCHANGED, SHCNF_IDLIST, None, None);
+            }
+            CoUninitialize();
+        });
     }
 }
 

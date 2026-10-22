@@ -303,6 +303,19 @@
                 </div>
               </div>
 
+              <h2>Sound enhancements</h2>
+              <div class="card">
+                <Row title="Volume leveler" description="Evens out loudness so quiet passages and tracks are easier to hear and loud ones do not jump out">
+                  <Toggle label="Volume leveler" checked={s.playback.volumeLeveler} onchange={(v) => set("playback.volumeLeveler", v)} />
+                </Row>
+                <Row title="Stereo width" description="Narrows the mix towards mono or widens it for a more spacious sound">
+                  <div class="slider">
+                    <input type="range" min="0" max="200" step="10" value={s.playback.stereoWidth} onchange={(e) => set("playback.stereoWidth", Number(e.currentTarget.value))} />
+                    <span class="value">{s.playback.stereoWidth === 0 ? "Mono" : s.playback.stereoWidth === 100 ? "Normal" : `${s.playback.stereoWidth}%`}</span>
+                  </div>
+                </Row>
+              </div>
+
               <h2>Playback</h2>
               <div class="card">
                 <Row title="Playback speed">
