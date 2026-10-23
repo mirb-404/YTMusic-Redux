@@ -340,12 +340,14 @@
     display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 16px;
   }
   .skeleton { position: absolute; inset: 0; display: flex; flex-direction: column; pointer-events: none; }
-  .sk {
-    display: block; border-radius: 6px;
-    background: linear-gradient(90deg, rgba(255, 255, 255, 0.04) 0%, rgba(255, 255, 255, 0.08) 50%, rgba(255, 255, 255, 0.04) 100%);
-    background-size: 200% 100%;
-    animation: shimmer 1.4s linear infinite;
+  .sk { position: relative; overflow: hidden; display: block; border-radius: 6px; background: rgba(255, 255, 255, 0.05); }
+  .sk::after {
+    content: ""; position: absolute; inset: 0;
+    background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.06), transparent);
+    transform: translateX(-100%);
+    animation: shimmer 1.3s linear infinite;
   }
+  @keyframes shimmer { to { transform: translateX(100%); } }
   .sk-nav { height: 64px; flex: none; display: flex; align-items: center; gap: 40px; padding: 0 24px; }
   .sk-logo { width: 96px; height: 24px; }
   .sk-search { width: min(480px, 40%); height: 48px; border-radius: 999px; }
@@ -366,5 +368,4 @@
   .timeout p { display: flex; gap: 8px; align-items: center; color: var(--warning); margin: 0 0 14px; }
   .actions { display: flex; gap: 10px; justify-content: center; }
 
-  @keyframes shimmer { from { background-position: 100% 0; } to { background-position: -100% 0; } }
 </style>

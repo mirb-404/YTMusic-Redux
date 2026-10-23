@@ -25,6 +25,14 @@
     section.items.length;
     queueMicrotask(update);
   });
+
+  // Window resizes, and a shelf first laid out as it scrolls into view, change what fits.
+  $effect(() => {
+    if (!track) return;
+    const observer = new ResizeObserver(update);
+    observer.observe(track);
+    return () => observer.disconnect();
+  });
 </script>
 
 <section class="shelf">

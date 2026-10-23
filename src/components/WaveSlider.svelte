@@ -70,7 +70,7 @@
 
       // Wake energy eases in/out so play/pause never snaps.
       const target = playing && !disabled ? 1 : 0;
-      energy += (target - energy) * Math.min(1, dt * 5);
+      energy += (target - energy) * (1 - Math.exp(-dt * 5));
       time += dt * (0.25 + 0.75 * energy);
 
       const cy = h / 2;

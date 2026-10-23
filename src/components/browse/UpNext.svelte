@@ -63,7 +63,7 @@
   .art img { width: 40px; height: 40px; border-radius: 50%; object-fit: cover; box-shadow: 0 4px 14px rgba(0, 0, 0, 0.4); }
   .ring { position: absolute; inset: 0; transform: rotate(-90deg); }
   .ring circle { fill: none; stroke: rgba(255, 255, 255, 0.14); stroke-width: 2.5; }
-  .ring .fill { stroke: var(--accent); stroke-linecap: round; transition: stroke-dashoffset 0.3s linear; }
+  .ring .fill { stroke: var(--accent); stroke-linecap: round; }
   .text { min-width: 0; display: grid; gap: 1px; padding-right: 4px; }
   .label { font-size: 10.5px; font-weight: 700; letter-spacing: 1.2px; text-transform: uppercase; color: rgba(255, 255, 255, 0.55); }
   .label span { margin-left: 6px; letter-spacing: 0; text-transform: none; font-weight: 600; font-variant-numeric: tabular-nums; color: rgba(255, 255, 255, 0.8); }

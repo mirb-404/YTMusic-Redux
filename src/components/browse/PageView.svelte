@@ -112,7 +112,7 @@
 {#if router.current?.loadingMore}<div class="spinner" aria-label="Loading"></div>{/if}
 
 <style>
-  .section { animation: rise var(--dur-slow) var(--ease-out) both; animation-delay: var(--delay); }
+  .section { animation: rise var(--dur-slow) var(--ease-out) both; animation-delay: var(--delay); content-visibility: auto; contain-intrinsic-size: auto 340px; }
   @keyframes rise { from { opacity: 0; transform: translateY(14px); } }
   h2 { margin: 0 0 12px; font-size: 24px; font-weight: 800; letter-spacing: -0.02em; }
 
@@ -137,7 +137,7 @@
   .more:hover { color: var(--text); text-decoration: underline; }
 
   .grid-section { margin-bottom: 36px; }
-  .grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(180px, 1fr)); gap: 24px 0; margin: 0 -12px; padding-top: 12px; }
+  .grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(clamp(160px, 12.5vw, 225px), 1fr)); gap: 24px 0; margin: 0 -12px; padding-top: 12px; }
   .grid :global(.card) { width: auto; }
 
   .top { margin-bottom: 36px; }

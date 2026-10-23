@@ -33,11 +33,12 @@
   onMount(() => {
     api.getPlayerState().then(apply);
     const unlisten = onPlayerState(apply);
-    const stop = clock.start();
-    return () => {
-      unlisten.then((f) => f());
-      stop();
-    };
+    return () => unlisten.then((f) => f());
+  });
+
+  // The clock only needs frames while time advances.
+  $effect(() => {
+    if (playing) return clock.start();
   });
 
   function seek(seconds: number) {
@@ -89,7 +90,7 @@
         class="bar"
         min="0"
         max={Math.max(1, duration)}
-        step="1"
+        step="any"
         value={position}
         disabled={!seekable}
         aria-label="Seek"

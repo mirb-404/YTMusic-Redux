@@ -63,8 +63,9 @@
   .plain { margin: 8px 0 24px; font-size: 32px; font-weight: 800; letter-spacing: -0.03em; }
   .hero { position: relative; margin: -24px -32px 0; padding: 64px 32px 24px; isolation: isolate; overflow: hidden; }
   .glow {
-    position: absolute; inset: -40%; z-index: -1; width: 180%; height: 180%;
-    object-fit: cover; filter: blur(90px) saturate(1.8); opacity: 0.55;
+    position: absolute; left: 50%; top: 50%; z-index: -1; width: 36%; height: 36%;
+    object-fit: cover; filter: blur(18px) saturate(1.8); opacity: 0.55;
+    transform: translate(-50%, -50%) scale(5);
     animation: glow-in 0.8s var(--ease) both;
   }
   @keyframes glow-in { from { opacity: 0; } }
@@ -73,7 +74,7 @@
     content: ""; position: absolute; inset: 0; z-index: -1; pointer-events: none;
     background: linear-gradient(to bottom, transparent 0%, rgba(0, 0, 0, 0.45) 100%);
   }
-  .artist { min-height: 380px; display: flex; align-items: flex-end; }
+  .artist { min-height: clamp(320px, 22vw, 560px); display: flex; align-items: flex-end; }
   .banner {
     position: absolute; inset: 0; z-index: -1; width: 100%; height: 100%; object-fit: cover; object-position: center 25%;
     animation: banner-in 1.2s var(--ease-out) both;

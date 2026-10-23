@@ -135,8 +135,9 @@
 
   .content {
     flex: 1; min-height: 0;
-    display: grid; grid-template-columns: minmax(240px, 400px) minmax(0, 1fr);
-    gap: 56px; padding: 24px 48px 0;
+    display: grid; grid-template-columns: minmax(240px, min(560px, 52vh)) minmax(0, 1fr);
+    gap: clamp(32px, 4vw, 96px); padding: 24px clamp(24px, 4vw, 96px) 0;
+    width: 100%; max-width: 1800px; margin: 0 auto;
   }
   .track { align-self: center; min-width: 0; padding-bottom: 32px; }
   .art {
@@ -156,10 +157,9 @@
     display: block; width: 100%; text-align: left;
     padding: 8px 0; font-size: 30px; font-weight: 800; line-height: 1.25; letter-spacing: -0.01em;
     color: rgba(255, 255, 255, calc(0.42 - var(--depth) * 0.06));
-    filter: blur(calc(var(--depth) * 0.45px));
     transform-origin: left center;
     transform: scale(0.96);
-    transition: color 0.5s var(--ease), filter 0.5s var(--ease), transform 0.6s cubic-bezier(0.34, 1.56, 0.64, 1);
+    transition: color 0.5s var(--ease), transform 0.6s cubic-bezier(0.34, 1.56, 0.64, 1);
   }
   .line.past { color: rgba(255, 255, 255, calc(0.3 - var(--depth) * 0.04)); }
   /* The current line: the track's colors flowing through the text, a springy pop and a glow. */
@@ -173,7 +173,7 @@
     color: transparent;
     animation: flow 6s linear infinite;
   }
-  .line:not(.active):hover { color: rgba(255, 255, 255, 0.85); filter: none; }
+  .line:not(.active):hover { color: rgba(255, 255, 255, 0.85); }
   @keyframes flow { to { background-position: -300% 0; } }
 
   /* Instrumental breaks: three dots bouncing in the track's colors. */

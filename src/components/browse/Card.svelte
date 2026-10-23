@@ -6,7 +6,8 @@
   let { item, width = 180 }: { item: Item; width?: number } = $props();
 
   const wide = $derived(item.aspect === "wide");
-  const src = $derived(art(item.thumbnails, wide ? width : width));
+  const base = $derived(wide ? Math.round(width * 1.6) : width);
+  const src = $derived(art(item.thumbnails, Math.round(width * 1.25)));
   const playEndpoint = $derived(item.play ?? (item.endpoint?.watchEndpoint || item.endpoint?.watchPlaylistEndpoint ? item.endpoint : null));
   const isPlaying = $derived(!!item.videoId && item.videoId === nowPlaying.id);
 
@@ -22,7 +23,7 @@
   <div
     class="card"
     class:wide
-    style:--w="{wide ? Math.round(width * 1.6) : width}px"
+    style:--w="clamp({base}px, {(base / 1440) * 100}vw, {Math.round(base * 1.25)}px)"
     role="button"
     tabindex="0"
     onclick={() => router.open(item.endpoint)}

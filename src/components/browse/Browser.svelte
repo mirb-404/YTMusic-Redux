@@ -211,10 +211,16 @@
   .error button:hover { transform: scale(1.04); }
 
   .skeleton { display: grid; gap: 18px; }
-  .sk { display: block; border-radius: var(--radius); background: linear-gradient(90deg, rgba(255,255,255,0.05), rgba(255,255,255,0.1), rgba(255,255,255,0.05)); background-size: 200% 100%; animation: shimmer 1.3s linear infinite; }
+  .sk { position: relative; overflow: hidden; display: block; border-radius: var(--radius); background: rgba(255, 255, 255, 0.05); }
+  .sk::after {
+    content: ""; position: absolute; inset: 0;
+    background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.06), transparent);
+    transform: translateX(-100%);
+    animation: shimmer 1.3s linear infinite;
+  }
+  @keyframes shimmer { to { transform: translateX(100%); } }
   .sk.title { width: 280px; height: 36px; margin-bottom: 12px; }
   .sk.heading { width: 220px; height: 24px; margin-top: 12px; }
   .sk-row { display: flex; gap: 12px; overflow: hidden; }
   .sk.card { width: 180px; height: 240px; flex: none; }
-  @keyframes shimmer { from { background-position: 100% 0; } to { background-position: -100% 0; } }
 </style>

@@ -1,5 +1,5 @@
 <script lang="ts">
-  import { slide } from "svelte/transition";
+  import { fly } from "svelte/transition";
   import { cubicOut } from "svelte/easing";
   import Icon from "../Icon.svelte";
   import { api, type PlayerState, type QueueItem } from "../../lib/api";
@@ -78,7 +78,7 @@
 {/snippet}
 
 {#if ui.queueOpen}
-  <aside class="panel" transition:slide={{ axis: "x", duration: 300, easing: cubicOut }}>
+  <aside class="panel" transition:fly={{ x: 48, duration: 280, easing: cubicOut }}>
     <div class="inner">
     <header>
       <h2>Queue</h2>
@@ -99,9 +99,9 @@
 {/if}
 
 <style>
-  /* Docked beside the page like Spotify's queue, sliding open rather than covering it. */
+  /* Docked beside the page like Spotify's queue. It slides by transform: animating its width
+     would reflow the whole page every frame. */
   .panel { flex: none; width: 360px; min-height: 0; border-radius: var(--radius-panel); background: var(--bg-panel); overflow: hidden; }
-  /* Fixed width inside, so the content does not reflow while the panel slides. */
   .inner { width: 360px; height: 100%; display: flex; flex-direction: column; }
   header { display: flex; align-items: center; justify-content: space-between; padding: 16px 12px 8px 16px; }
   h2 { margin: 0; font-size: 16px; font-weight: 700; }
