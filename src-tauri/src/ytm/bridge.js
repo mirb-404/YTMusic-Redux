@@ -608,6 +608,115 @@
   }
 
 
+  // --- Smart audio (beta): listens to each track and shapes the equalizer and leveler for it.
+  // It measures the track's long-term tonal balance per equalizer band and how much its
+  // loudness swings, both relative measures that the volume setting does not change, and
+  // eases the sound toward a balanced reference. It listens before the equalizer, so its own
+  // corrections never feed back into what it measures.
+  const smartMath = {
+    // Per-band energy of a balanced commercial mix, in dB relative to the mids: about
+    // -1.5 dB per octave above 250 Hz, a natural sub-bass and top-octave roll-off.
+    TARGET: [-7, -2, 0, 0, -1.5, -3, -4.5, -6, -8, -13],
+    // Fraction of the measured difference that is corrected: a nudge, not a re-master.
+    STRENGTH: 0.6,
+    // Boosts stay small (most of all at the extremes, where boosting adds rumble or hiss);
+    // cuts may go deeper, which costs no headroom.
+    MAX_BOOST: [3, 4, 4, 4, 4, 4, 4, 4, 3, 2],
+    MAX_CUT: 6,
+    // Bands far below the reference hold next to nothing (a lossy cutoff, no sub-bass):
+    // they are left alone instead of boosted.
+    EMPTY_DB: 18,
+    MIDS: [3, 4, 5, 6, 7],
+    // energy: summed power per band. levels: short-term loudness readings in dB.
+    solve(energy, levels) {
+      const db = Array.from(energy, (p) => 10 * Math.log10(p + 1e-12));
+      const offset = this.MIDS.reduce((sum, i) => sum + db[i] - this.TARGET[i], 0) / this.MIDS.length;
+      const gains = db.map((d, i) => {
+        const shape = d - offset;
+        if (shape < this.TARGET[i] - this.EMPTY_DB) return 0;
+        const gain = (this.TARGET[i] - shape) * this.STRENGTH;
+        return Math.round(Math.max(-this.MAX_CUT, Math.min(this.MAX_BOOST[i], gain)) * 2) / 2;
+      });
+      // Loudness range: the spread between the quiet (10th percentile) and loud (95th)
+      // moments. Mastered-loud pop sits near 5 dB, film scores and classical above 15 dB.
+      const sorted = [...levels].sort((a, b) => a - b);
+      const at = (q) => sorted[Math.min(sorted.length - 1, Math.floor(q * sorted.length))] ?? 0;
+      const range = sorted.length ? at(0.95) - at(0.1) : 0;
+      const ratio = Math.round(Math.max(1, Math.min(3, 1 + (range - 8) / 6)) * 10) / 10;
+      return { gains, ratio, range };
+    }
+  };
+
+  // The audio engine below owns the config; smart audio only reads its band centers.
+  const audioConfig = () => audio.config;
+  const smart = {
+    FFT: 8192,
+    timer: null,
+    track: "",
+    energy: new Float64Array(10),
+    levels: [],
+    frames: 0,
+    gains: new Array(10).fill(0),
+    ratio: 1,
+    bandOf: null,
+    start(audio) {
+      if (this.timer) return;
+      this.timer = setInterval(() => this.sample(audio), 100);
+    },
+    stop() {
+      clearInterval(this.timer);
+      this.timer = null;
+    },
+    reset(track) {
+      this.track = track;
+      this.energy = new Float64Array(10);
+      this.levels = [];
+      this.frames = 0;
+    },
+    // FFT bin to equalizer band, by octave edges around each band's center.
+    bands(g) {
+      const bins = g.analyser.frequencyBinCount;
+      const hz = g.ctx.sampleRate / this.FFT;
+      const centers = audioConfig().eqBands;
+      this.bandOf = new Int8Array(bins).map((_, i) => {
+        const f = i * hz;
+        if (f < 20 || f > 20000) return -1;
+        const band = centers.findIndex((c) => f < c * Math.SQRT2);
+        return band === -1 ? centers.length - 1 : band;
+      });
+    },
+    sample(audio) {
+      const g = audio.graph;
+      // Ads would skew a track's measurements; the ad blocker mutes them anyway.
+      if (!g || g.el.paused || g.el.muted) return;
+      if (audio.trackId !== this.track) this.reset(audio.trackId);
+      if (!this.bandOf) this.bands(g);
+      const wave = (this.wave ??= new Float32Array(this.FFT));
+      g.analyser.getFloatTimeDomainData(wave);
+      let sum = 0;
+      for (const v of wave) sum += v * v;
+      const rms = Math.sqrt(sum / wave.length);
+      // Silence (gaps, the start of a track) says nothing about the music.
+      if (rms < 1e-4) return;
+      this.levels.push(20 * Math.log10(rms));
+      const spectrum = (this.spectrum ??= new Float32Array(g.analyser.frequencyBinCount));
+      g.analyser.getFloatFrequencyData(spectrum);
+      for (let i = 0; i < spectrum.length; i++) {
+        const band = this.bandOf[i];
+        if (band >= 0) this.energy[band] += 10 ** (spectrum[i] / 10);
+      }
+      this.frames++;
+      // A first estimate after 3 s of music, refined every second; the graph glides between
+      // estimates, so the changes are not heard as steps.
+      if (this.frames >= 30 && this.frames % 10 === 0) {
+        const { gains, ratio } = smartMath.solve(this.energy, this.levels);
+        this.gains = gains;
+        this.ratio = ratio;
+        audio.applyGraph();
+      }
+    }
+  };
+
   // --- Audio: song/video preference, playback speed, equalizer and track fades
   const audio = {
     config: null,
@@ -796,6 +905,12 @@
       const leveler = ctx.createDynamicsCompressor();
       const makeup = ctx.createGain();
       const fade = ctx.createGain();
+      // Smart audio's ears, on the untouched signal. An analyser needs no output to run.
+      const analyser = ctx.createAnalyser();
+      analyser.fftSize = smart.FFT;
+      analyser.smoothingTimeConstant = 0;
+      source.connect(analyser);
+      smart.bandOf = null;
       filters.reduce((prev, f) => (prev.connect(f), f), source).connect(split);
       merge.connect(leveler).connect(makeup).connect(fade);
       fade.connect(ctx.destination);
@@ -803,27 +918,39 @@
       el.addEventListener("playing", () => this.applyRate());
       el.addEventListener("timeupdate", () => this.updateFade());
       ctx.resume();
-      this.graph = { ctx, el, filters, own, cross, leveler, makeup, fade };
+      this.graph = { ctx, el, filters, own, cross, leveler, makeup, fade, analyser };
       return this.graph;
     },
     applyGraph() {
-      const { equalizer, crossfadeSeconds, volumeLeveler, stereoWidth } = this.config;
-      if (!this.graph && !equalizer.enabled && crossfadeSeconds === 0 && !volumeLeveler && stereoWidth === 100) return;
+      const { equalizer, crossfadeSeconds, volumeLeveler, stereoWidth, smartAudio } = this.config;
+      if (!smartAudio) smart.stop();
+      if (!this.graph && !smartAudio && !equalizer.enabled && crossfadeSeconds === 0 && !volumeLeveler && stereoWidth === 100) return;
       const g = this.ensureGraph();
       if (!g) return;
+      if (smartAudio) smart.start(this);
       const now = g.ctx.currentTime;
-      g.filters.forEach((f, i) => f.gain.setTargetAtTime(equalizer.enabled ? equalizer.gains[i] : 0, now, 0.05));
+      // Smart audio's estimates glide in over a few seconds; manual changes apply at once.
+      const glide = smartAudio ? 1.5 : 0.05;
+      const gains = smartAudio ? smart.gains : equalizer.enabled ? equalizer.gains : null;
+      g.filters.forEach((f, i) => f.gain.setTargetAtTime(gains ? gains[i] : 0, now, glide));
       const w = stereoWidth / 100;
       g.own.forEach((n) => n.gain.setTargetAtTime((1 + w) / 2, now, 0.05));
       g.cross.forEach((n) => n.gain.setTargetAtTime((1 - w) / 2, now, 0.05));
       const c = g.leveler;
-      c.threshold.value = volumeLeveler ? -24 : 0;
-      c.knee.value = volumeLeveler ? 24 : 0;
-      c.ratio.value = volumeLeveler ? 4 : 1;
+      // Smart audio compresses only tracks with a wide loudness range, and gently.
+      const ratio = smartAudio ? smart.ratio : volumeLeveler ? 4 : 1;
+      const leveling = ratio > 1;
+      c.threshold.value = leveling ? -24 : 0;
+      c.knee.value = leveling ? 24 : 0;
+      c.ratio.value = ratio;
       c.attack.value = 0.005;
       c.release.value = 0.3;
-      // About +6 dB, which the compression took off the loudest parts.
-      g.makeup.gain.setTargetAtTime(volumeLeveler ? 2 : 1, now, 0.05);
+      // The manual leveler adds back about +6 dB, which the compression took off the loudest
+      // parts; smart audio adds back in proportion to its ratio, less half of its largest
+      // boost, so boosted bands do not clip.
+      const headroom = smartAudio ? 10 ** (-Math.max(0, ...smart.gains) / 40) : 1;
+      const makeup = smartAudio ? 1 + (ratio - 1) * 0.5 : volumeLeveler ? 2 : 1;
+      g.makeup.gain.setTargetAtTime(makeup * headroom, now, glide);
       this.updateFade();
     },
     updateFade() {

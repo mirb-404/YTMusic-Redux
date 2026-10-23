@@ -45,6 +45,7 @@ pub fn audio_config(s: &Settings) -> Value {
         "equalizer": s.playback.equalizer,
         "volumeLeveler": s.playback.volume_leveler,
         "stereoWidth": s.playback.stereo_width,
+        "smartAudio": s.playback.smart_audio,
         "eqBands": crate::settings::EQ_BANDS,
     })
 }

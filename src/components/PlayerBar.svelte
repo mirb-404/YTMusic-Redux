@@ -88,7 +88,8 @@
 
 <footer class="bar" class:tinted>
   <!-- The artwork, blurred, tints the bar in the track's colors. -->
-  {#if tinted && art}{#key art}<img class="tint" src={art} alt="" aria-hidden="true" transition:fade={{ duration: 700 }} />{/key}{/if}
+  <!-- Clipped on its own layer, so popups like the sleep timer can rise above the bar. -->
+  {#if tinted && art}<div class="tint-clip" aria-hidden="true">{#key art}<img class="tint" src={art} alt="" transition:fade={{ duration: 700 }} />{/key}</div>{/if}
   <section class="track">
     <div class="art-wrap">
       <button class="art" data-tour="art" title="Now playing" disabled={!video} onclick={() => api.command("togglePlayerPage")}>
@@ -211,10 +212,11 @@
     gap: 24px;
     padding: 0 16px;
     position: relative;
+    z-index: 30;
     isolation: isolate;
-    overflow: hidden;
     background: var(--bg);
   }
+  .tint-clip { position: absolute; inset: 0; z-index: -1; overflow: hidden; pointer-events: none; }
   /* Slightly see-through over the tint layer below. */
   .bar.tinted { background: color-mix(in srgb, var(--bg) 82%, transparent); }
   .tint {

@@ -192,6 +192,7 @@
             {player}
             {lyrics}
             {lineIndex}
+            {elapsed}
             controls={windowControls}
             {drag}
             onclose={() => api.setNowPlayingOpen(false)}
@@ -209,6 +210,7 @@
       {player}
       {lyrics}
       {lineIndex}
+      {elapsed}
       controls={showTitleBar ? undefined : windowControls}
       {drag}
       onclose={() => api.setNowPlayingOpen(false)}

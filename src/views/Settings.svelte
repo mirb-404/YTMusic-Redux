@@ -106,6 +106,7 @@
     ["playback.equalizer.enabled", false],
     ["playback.equalizer.gains", [0, 0, 0, 0, 0, 0, 0, 0, 0, 0]],
     ["playback.volumeLeveler", false],
+    ["playback.smartAudio", false],
     ["playback.stereoWidth", 100],
     ["playback.playbackRate", 100],
     ["playback.crossfadeSeconds", 0]
@@ -115,6 +116,7 @@
       !s.playback.equalizer.enabled &&
       s.playback.equalizer.gains.every((g) => g === 0) &&
       !s.playback.volumeLeveler &&
+      !s.playback.smartAudio &&
       s.playback.stereoWidth === 100 &&
       s.playback.playbackRate === 100 &&
       s.playback.crossfadeSeconds === 0
@@ -300,8 +302,22 @@
                 </Row>
               </div>
 
-              <h2>Equalizer</h2>
+              <h2>Smart audio</h2>
               <div class="card">
+                <Row
+                  title="Smart audio"
+                  beta
+                  description="Listens to each track and tunes the equalizer and leveler for it: tames boomy or harsh mixes, fills out thin ones, and evens out tracks with big quiet and loud swings. Takes a few seconds to settle on each track."
+                >
+                  <Toggle label="Smart audio" checked={s.playback.smartAudio} onchange={(v) => set("playback.smartAudio", v)} />
+                </Row>
+                {#if s.playback.smartAudio}
+                  <div class="alert info"><Icon name="info" size={16} />The equalizer and volume leveler below are paused while smart audio tunes the sound.</div>
+                {/if}
+              </div>
+
+              <h2>Equalizer</h2>
+              <div class="card" class:paused={s.playback.smartAudio}>
                 <Row title="Equalizer" description="10-band equalizer applied to everything YouTube Music plays">
                   <Toggle label="Equalizer" checked={s.playback.equalizer.enabled} onchange={(v) => set("playback.equalizer.enabled", v)} />
                 </Row>
@@ -333,9 +349,11 @@
 
               <h2>Sound enhancements</h2>
               <div class="card">
-                <Row title="Volume leveler" description="Evens out loudness so quiet passages and tracks are easier to hear and loud ones do not jump out">
-                  <Toggle label="Volume leveler" checked={s.playback.volumeLeveler} onchange={(v) => set("playback.volumeLeveler", v)} />
-                </Row>
+                <div class:paused={s.playback.smartAudio}>
+                  <Row title="Volume leveler" description="Evens out loudness so quiet passages and tracks are easier to hear and loud ones do not jump out">
+                    <Toggle label="Volume leveler" checked={s.playback.volumeLeveler} onchange={(v) => set("playback.volumeLeveler", v)} />
+                  </Row>
+                </div>
                 <Row title="Stereo width" description="Narrows the mix towards mono or widens it for a more spacious sound">
                   <div class="slider">
                     <input type="range" min="0" max="200" step="10" value={s.playback.stereoWidth} onchange={(e) => set("playback.stereoWidth", Number(e.currentTarget.value))} />
@@ -583,6 +601,8 @@
   }
 
   .eq { padding: 4px 18px 18px; border-top: 1px solid var(--border); }
+  /* Manual controls smart audio has taken over: visible, settings kept, not in effect. */
+  .paused { opacity: 0.45; pointer-events: none; }
   .eq.off { opacity: 0.45; }
   .presets { display: flex; flex-wrap: wrap; gap: 6px; padding: 12px 0 16px; }
   .presets button {

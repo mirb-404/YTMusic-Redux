@@ -60,6 +60,7 @@ export type Settings = {
     equalizer: { enabled: boolean; gains: number[] };
     volumeLeveler: boolean;
     stereoWidth: number;
+    smartAudio: boolean;
     blockAds: boolean;
     skipDisliked: boolean;
     videoQuality: string;

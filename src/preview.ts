@@ -156,7 +156,7 @@ const memory: Memory = {
 const settings: Settings = {
   general: { disableHardwareAcceleration: false, hideToTrayOnClose: false, showNotificationOnSongChange: false, startOnBoot: false, startMinimized: false },
   appearance: { modernUi: true, tintedPlayerBar: true, nativeBrowse: true, videoMiniPlayer: true, upNext: true, alwaysShowVolumeSlider: false, customCssEnabled: false, customCssPath: null, zoom: 100, trayIconStyle: "auto" },
-  playback: { continueWhereYouLeftOff: true, continueWhereYouLeftOffPaused: true, enableSpeakerFill: false, progressInTaskbar: false, ratioVolume: false, showVideos: true, openPlayerOnPlay: false, playbackRate: 100, crossfadeSeconds: 4, equalizer: { enabled: true, gains: [6, 5, 4, 2, 0, 0, 0, 0, 0, 0] }, volumeLeveler: true, stereoWidth: 120, blockAds: true, skipDisliked: false, videoQuality: "auto" },
+  playback: { continueWhereYouLeftOff: true, continueWhereYouLeftOffPaused: true, enableSpeakerFill: false, progressInTaskbar: false, ratioVolume: false, showVideos: true, openPlayerOnPlay: false, playbackRate: 100, crossfadeSeconds: 4, equalizer: { enabled: true, gains: [6, 5, 4, 2, 0, 0, 0, 0, 0, 0] }, volumeLeveler: true, stereoWidth: 120, smartAudio: false, blockAds: true, skipDisliked: false, videoQuality: "auto" },
   integrations: { companionServerEnabled: false, companionServerCORSWildcardEnabled: false, discordPresenceEnabled: false, discordClientId: "", lastFMEnabled: false },
   shortcuts: { playPause: "", next: "", previous: "", thumbsUp: "", thumbsDown: "", volumeUp: "", volumeDown: "" },
   lastfm: { apiKey: "", secret: "", scrobblePercent: 50 },

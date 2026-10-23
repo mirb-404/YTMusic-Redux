@@ -89,6 +89,9 @@ pub struct Playback {
     pub volume_leveler: bool,
     /// Stereo width in percent: 0 is mono, 100 leaves the mix as it is, 200 widens it.
     pub stereo_width: u32,
+    /// Beta: shapes the equalizer and leveler for each track from how it sounds, in place of
+    /// the manual equalizer and leveler.
+    pub smart_audio: bool,
     /// Removes ads from YTM's responses and skips any that still play.
     pub block_ads: bool,
     /// Moves on as soon as a track you have disliked starts.
@@ -125,6 +128,7 @@ impl Default for Playback {
             equalizer: Equalizer::default(),
             volume_leveler: false,
             stereo_width: 100,
+            smart_audio: false,
             block_ads: true,
             skip_disliked: false,
             video_quality: "auto".into(),
