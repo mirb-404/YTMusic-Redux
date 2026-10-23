@@ -44,61 +44,73 @@
 {/if}
 
 <style>
+  /* Spotify's card: a quiet tile that lifts on hover, its play button rising from the corner. */
   .card {
     width: var(--w); flex: none;
-    padding: 10px; margin: -10px;
-    border-radius: 12px;
+    padding: 12px; margin: -12px 0;
+    border-radius: var(--radius);
     cursor: pointer;
-    transition: background 0.2s var(--ease);
+    transition: background var(--dur-slow) var(--ease);
   }
-  .card:hover, .card:focus-visible { background: var(--surface); }
-  .card:focus-visible { outline: 2px solid var(--accent); outline-offset: 0; }
+  .card:hover, .card:focus-visible { background: var(--bg-elevated); }
+  .card:active { background: #000; }
+  .card:focus-visible { outline: 2px solid var(--text); outline-offset: 0; }
   .art {
     position: relative;
     width: 100%; aspect-ratio: 1;
-    border-radius: 8px; overflow: hidden;
+    border-radius: var(--radius-sm); overflow: hidden;
     display: grid; place-items: center;
-    background: var(--surface-hover); color: var(--text-faint);
-    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.35);
+    background: var(--bg-highlight); color: var(--text-faint);
+    box-shadow: var(--shadow-card);
   }
   .art.wide { aspect-ratio: 16 / 9; }
   .art.circle { border-radius: 50%; }
-  .art img { width: 100%; height: 100%; object-fit: cover; transition: transform 0.45s var(--ease); }
-  .card:hover .art img { transform: scale(1.04); }
+  .art img { width: 100%; height: 100%; object-fit: cover; animation: fade-in var(--dur-slow) var(--ease) both; }
+  @keyframes fade-in { from { opacity: 0; } }
   .play {
-    position: absolute; right: 10px; bottom: 10px;
-    width: 42px; height: 42px; border-radius: 50%;
+    position: absolute; right: 8px; bottom: 8px;
+    width: 48px; height: 48px; border-radius: 50%;
     display: grid; place-items: center;
-    background: #fff; color: #000;
-    box-shadow: 0 6px 18px rgba(0, 0, 0, 0.45);
-    opacity: 0; transform: translateY(8px) scale(0.9);
-    transition: opacity 0.2s var(--ease), transform 0.25s var(--ease), background 0.15s;
+    background: var(--accent); color: var(--accent-ink);
+    box-shadow: 0 8px 8px rgba(0, 0, 0, 0.3);
+    opacity: 0; transform: translateY(8px);
+    transition: opacity var(--dur-slow) var(--ease), transform var(--dur-slow) var(--ease), background var(--dur-fast) var(--ease);
   }
-  .circle .play { right: 50%; bottom: 50%; margin: 0 -21px -21px 0; }
-  .card:hover .play, .play.on { opacity: 1; transform: none; }
-  .play:hover { transform: scale(1.08) !important; }
-  .play.on { background: var(--accent); color: #fff; }
+  .circle .play { right: 4px; bottom: 4px; }
+  .card:hover .play, .card:focus-visible .play, .play.on { opacity: 1; transform: none; }
+  .play:hover { transform: scale(1.06) !important; background: var(--accent-hover); }
+  .play:active { transform: scale(0.96) !important; }
   .more {
     position: absolute; top: 8px; right: 8px; z-index: 1;
     width: 32px; height: 32px; border-radius: 50%;
     display: grid; place-items: center;
-    background: rgba(0, 0, 0, 0.55); color: #fff; backdrop-filter: blur(8px);
-    opacity: 0; transition: opacity 0.2s, background 0.15s;
+    background: rgba(0, 0, 0, 0.6); color: #fff; backdrop-filter: blur(8px);
+    opacity: 0; transition: opacity var(--dur) var(--ease), background var(--dur-fast) var(--ease), transform var(--dur-fast) var(--ease);
   }
   .card:hover .more { opacity: 1; }
-  .more:hover { background: rgba(0, 0, 0, 0.8); }
+  .more:hover { background: rgba(0, 0, 0, 0.85); transform: scale(1.06); }
   .circle .more { top: 4px; right: 4px; }
-  .title { margin-top: 10px; font-weight: 600; font-size: 14px; line-height: 1.3; display: -webkit-box; -webkit-line-clamp: 2; line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
-  .sub { margin-top: 3px; font-size: 13px; color: var(--text-muted); display: -webkit-box; -webkit-line-clamp: 2; line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
-  .circle ~ .title, .circle ~ .sub { text-align: center; }
+  .title { margin-top: 10px; font-weight: 600; font-size: 15px; line-height: 1.3; display: -webkit-box; -webkit-line-clamp: 2; line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
+  .sub { margin-top: 4px; font-size: 13.5px; color: var(--text-muted); display: -webkit-box; -webkit-line-clamp: 2; line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
+  .circle ~ .title, .circle ~ .sub { text-align: left; }
 
+  /* Explore's moods and genres: Spotify's bold color blocks. */
   .category {
-    flex: none; width: 200px; height: 56px;
-    padding: 0 16px; border-radius: 10px;
-    text-align: left; font-weight: 600; font-size: 14px;
-    background: linear-gradient(90deg, color-mix(in srgb, var(--stripe) 28%, transparent), var(--surface) 70%);
-    border-left: 4px solid var(--stripe);
-    transition: transform 0.2s var(--ease), background 0.2s;
+    position: relative; overflow: hidden;
+    flex: none; width: 200px; height: 96px; margin-left: 12px;
+    padding: 14px 16px; border-radius: var(--radius);
+    text-align: left; align-content: start; display: grid;
+    font-weight: 800; font-size: 18px; line-height: 1.2; letter-spacing: -0.01em;
+    background: linear-gradient(135deg, var(--stripe), color-mix(in srgb, var(--stripe) 45%, #000));
+    box-shadow: var(--shadow-card);
+    transition: transform var(--dur) var(--ease), filter var(--dur) var(--ease);
   }
-  .category:hover { transform: translateY(-2px); background: linear-gradient(90deg, color-mix(in srgb, var(--stripe) 40%, transparent), var(--surface-hover) 70%); }
+  .category::after {
+    content: ""; position: absolute; right: -18px; bottom: -18px; width: 72px; height: 72px; border-radius: 10px;
+    background: rgba(255, 255, 255, 0.16); transform: rotate(25deg);
+    transition: transform var(--dur-slow) var(--ease-out);
+  }
+  .category:hover { transform: scale(1.03); filter: brightness(1.08); }
+  .category:hover::after { transform: rotate(32deg) translate(-4px, -4px); }
+  .category:active { transform: scale(0.98); }
 </style>

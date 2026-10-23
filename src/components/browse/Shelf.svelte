@@ -49,37 +49,38 @@
 </section>
 
 <style>
-  .shelf { margin-bottom: 40px; }
-  header { display: flex; align-items: flex-end; justify-content: space-between; gap: 16px; margin-bottom: 16px; }
-  .strapline { font-size: 12px; font-weight: 600; letter-spacing: 0.6px; text-transform: uppercase; color: var(--text-faint); margin-bottom: 2px; }
-  h2 { margin: 0; font-size: 22px; font-weight: 700; letter-spacing: -0.01em; }
-  .actions { display: flex; align-items: center; gap: 6px; }
+  .shelf { margin-bottom: 36px; }
+  header { display: flex; align-items: flex-end; justify-content: space-between; gap: 16px; margin-bottom: 12px; }
+  .strapline { font-size: 13px; font-weight: 500; color: var(--text-muted); margin-bottom: 2px; }
+  h2 { margin: 0; font-size: 24px; font-weight: 800; letter-spacing: -0.02em; }
+  .actions { display: flex; align-items: center; gap: 8px; }
   .more {
-    height: 32px; padding: 0 14px; border-radius: 16px;
-    font-size: 13px; font-weight: 600; color: var(--text-muted);
-    border: 1px solid var(--border);
-    transition: background 0.15s, color 0.15s;
+    padding: 0 4px; margin-right: 6px;
+    font-size: 14px; font-weight: 700; color: var(--text-muted);
+    transition: color var(--dur-fast) var(--ease);
   }
-  .more:hover { background: var(--surface-hover); color: var(--text); }
+  .more:hover { color: var(--text); text-decoration: underline; }
   .nav {
     width: 32px; height: 32px; border-radius: 50%;
     display: grid; place-items: center;
-    border: 1px solid var(--border); color: var(--text);
-    transition: background 0.15s, opacity 0.15s;
+    background: var(--bg-elevated); color: var(--text);
+    transition: background var(--dur-fast) var(--ease), opacity var(--dur) var(--ease), transform var(--dur-fast) var(--ease);
   }
-  .nav:hover:not(:disabled) { background: var(--surface-hover); }
+  .nav:hover:not(:disabled) { background: var(--bg-highlight); transform: scale(1.06); }
+  .nav:active:not(:disabled) { transform: scale(0.94); }
   .nav:disabled { opacity: 0.3; cursor: default; }
   .track {
-    display: flex; gap: 20px;
+    display: flex; gap: 0;
     overflow-x: auto; overflow-y: hidden;
-    padding: 10px; margin: -10px;
+    padding: 12px 0; margin: 0 -12px;
     scroll-snap-type: x proximity;
+    scroll-padding: 0 12px;
     scrollbar-width: none;
   }
   .track::-webkit-scrollbar { display: none; }
   .track > :global(*) { scroll-snap-align: start; }
   .track.rows {
     display: grid; grid-auto-flow: column; grid-template-rows: repeat(4, auto);
-    grid-auto-columns: minmax(340px, 30%); gap: 2px 16px;
+    grid-auto-columns: minmax(340px, 30%); gap: 0 16px; padding: 0 12px;
   }
 </style>

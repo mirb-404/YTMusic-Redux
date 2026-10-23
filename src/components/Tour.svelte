@@ -165,7 +165,7 @@
     border-radius: 12px;
     box-shadow:
       0 0 0 1.5px rgba(255, 255, 255, 0.55),
-      0 0 28px 6px rgba(240, 68, 95, 0.35),
+      0 0 28px 6px color-mix(in srgb, var(--accent) 35%, transparent),
       0 0 0 200vmax rgba(4, 4, 8, 0.45);
     transition: left 0.55s var(--ease), top 0.55s var(--ease), width 0.55s var(--ease), height 0.55s var(--ease), box-shadow 0.4s;
     pointer-events: none;
@@ -176,8 +176,8 @@
     position: absolute;
     width: 340px;
     padding: 20px 20px 16px;
-    border-radius: 14px;
-    background: rgba(21, 21, 28, 0.96);
+    border-radius: var(--radius);
+    background: var(--bg-highlight);
     border: 1px solid var(--border);
     box-shadow: 0 24px 64px rgba(0, 0, 0, 0.55);
     transition: left 0.55s var(--ease), top 0.55s var(--ease), transform 0.55s var(--ease);
@@ -189,8 +189,8 @@
   .logo {
     width: 44px; height: 44px; margin: 0 auto 14px;
     display: grid; place-items: center;
-    border-radius: 12px; background: var(--accent); color: #fff;
-    box-shadow: 0 0 32px rgba(240, 68, 95, 0.5);
+    border-radius: 12px; background: var(--accent-gradient); color: #fff;
+    box-shadow: 0 0 32px color-mix(in srgb, var(--accent) 50%, transparent);
   }
   .count { font-size: 11.5px; font-weight: 600; color: var(--accent); }
   h2 { margin: 4px 0 6px; font-size: 17px; line-height: 1.3; }

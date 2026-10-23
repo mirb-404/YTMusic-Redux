@@ -463,13 +463,14 @@
     border-bottom: 1px solid var(--border);
   }
   header .title { display: flex; gap: 8px; align-items: center; font-weight: 700; }
-  .body { flex: 1; display: flex; min-height: 0; }
+  .body { flex: 1; display: flex; min-height: 0; gap: var(--gutter); padding: var(--gutter); }
 
   nav {
     width: 210px; flex: none;
     display: flex; flex-direction: column; gap: 2px;
     padding: 12px 10px;
-    border-right: 1px solid var(--border);
+    border-radius: var(--radius-panel);
+    background: var(--bg-panel);
   }
   nav button {
     position: relative;
@@ -489,19 +490,19 @@
   }
   nav .push { flex: 1; }
 
-  main { flex: 1; overflow-y: auto; padding: 8px 28px 32px; }
+  main { flex: 1; overflow-y: auto; padding: 8px 28px 32px; border-radius: var(--radius-panel); background: linear-gradient(180deg, color-mix(in srgb, var(--accent) 12%, transparent) 0, transparent 220px), var(--bg-panel); }
   .page { max-width: 760px; }
   h1 { font-size: 22px; margin: 18px 0 14px; }
   h2 { font-size: 13px; text-transform: uppercase; letter-spacing: 0.8px; color: var(--text-faint); margin: 26px 0 10px; }
   .lead { color: var(--text-muted); margin: -4px 0 16px; }
-  .card { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); overflow: hidden; }
+  .card { background: var(--surface); border-radius: var(--radius); overflow: hidden; }
 
   .banner {
     position: sticky; top: 0; z-index: 2;
     display: flex; align-items: center; justify-content: space-between;
     margin: 12px 0 0; padding: 10px 12px 10px 16px;
     border-radius: var(--radius);
-    background: #24151a; border: 1px solid rgba(240, 68, 95, 0.35);
+    background: color-mix(in srgb, var(--accent) 12%, var(--bg-panel)); border: 1px solid color-mix(in srgb, var(--accent) 35%, transparent);
   }
   .banner span { display: flex; gap: 8px; align-items: center; font-weight: 600; }
 
@@ -509,9 +510,9 @@
   .slider input { width: 160px; accent-color: var(--accent); }
   .value { min-width: 44px; text-align: right; font-variant-numeric: tabular-nums; color: var(--text-muted); }
 
-  .segmented { display: flex; padding: 3px; gap: 2px; border-radius: 9px; background: var(--surface-hover); }
-  .segmented button { padding: 5px 12px; border-radius: 7px; text-transform: capitalize; color: var(--text-muted); font-weight: 600; }
-  .segmented button.active { background: var(--accent); color: #fff; }
+  .segmented { display: flex; padding: 3px; gap: 2px; border-radius: 999px; background: var(--surface-hover); }
+  .segmented button { padding: 5px 14px; border-radius: 999px; transition: background var(--dur) var(--ease), color var(--dur) var(--ease); text-transform: capitalize; color: var(--text-muted); font-weight: 600; }
+  .segmented button.active { background: #fff; color: #000; }
 
   input.text {
     width: 240px; height: 34px; padding: 0 10px;
@@ -585,7 +586,7 @@
     position: fixed; bottom: 18px; left: 50%; transform: translateX(-50%);
     display: flex; gap: 8px; align-items: center;
     padding: 10px 16px; border-radius: var(--radius);
-    background: #2a1418; border: 1px solid rgba(255, 107, 107, 0.4); color: var(--danger);
+    background: color-mix(in srgb, var(--danger) 12%, var(--bg-panel)); border: 1px solid color-mix(in srgb, var(--danger) 40%, transparent); color: var(--danger);
     box-shadow: 0 8px 24px rgba(0, 0, 0, 0.4);
   }
 

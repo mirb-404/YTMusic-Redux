@@ -87,14 +87,14 @@
   .scrim { position: fixed; inset: 0; z-index: 90; }
   .menu {
     position: fixed; z-index: 91; min-width: 240px; max-width: 320px;
-    padding: 6px; border-radius: 12px;
-    background: rgba(24, 24, 31, 0.96); border: 1px solid var(--border);
-    box-shadow: 0 20px 50px rgba(0, 0, 0, 0.6); backdrop-filter: blur(20px);
+    padding: 4px; border-radius: var(--radius-sm);
+    background: var(--bg-highlight);
+    box-shadow: var(--shadow-pop);
     transform-origin: top left;
   }
   .title { padding: 8px 12px 8px; font-size: 12px; font-weight: 700; color: var(--text-faint); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; border-bottom: 1px solid var(--border); margin-bottom: 4px; }
-  button { width: 100%; display: flex; align-items: center; gap: 12px; padding: 9px 12px; border-radius: 8px; font-size: 13.5px; text-align: left; color: var(--text); }
+  button { width: 100%; display: flex; align-items: center; gap: 12px; padding: 11px 12px; border-radius: 2px; font-size: 14px; text-align: left; color: rgba(255, 255, 255, 0.9); transition: background var(--dur-fast) var(--ease); }
   button :global(svg) { color: var(--text-muted); flex: none; }
-  button:hover, button:focus-visible { background: var(--surface-hover); }
+  button:hover, button:focus-visible { background: rgba(255, 255, 255, 0.1); color: var(--text); outline: none; }
   .danger, .danger :global(svg) { color: var(--danger); }
 </style>

@@ -140,12 +140,13 @@
   }
   .track { align-self: center; min-width: 0; padding-bottom: 32px; }
   .art {
-    width: 100%; aspect-ratio: 1; border-radius: 12px; overflow: hidden;
+    width: 100%; aspect-ratio: 1; border-radius: var(--radius); overflow: hidden;
+    box-shadow: 0 24px 60px rgba(0, 0, 0, 0.55);
     display: grid; place-items: center;
     background: var(--surface-hover); color: var(--text-faint);
   }
   .art img { width: 100%; height: 100%; object-fit: cover; }
-  h1 { margin: 20px 0 4px; font-size: 24px; line-height: 1.25; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  h1 { margin: 24px 0 4px; font-size: 28px; font-weight: 800; letter-spacing: -0.02em; line-height: 1.25; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
   .track p { margin: 0; color: var(--text-muted); font-size: 14.5px; }
 
   .lyrics { overflow-y: auto; padding: 24px 8px 32px 0; scrollbar-width: none; }

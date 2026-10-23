@@ -48,7 +48,7 @@
 
     const style = getComputedStyle(document.documentElement);
     const colors = {
-      accent: style.getPropertyValue("--accent").trim() || "#f0445f",
+      accent: style.getPropertyValue("--accent").trim() || "#ff1f45",
       white: "#ffffff"
     };
 
@@ -239,9 +239,9 @@
     bottom: calc(100% + 2px);
     transform: translateX(-50%);
     padding: 3px 7px;
-    border-radius: 6px;
-    background: rgba(20, 20, 28, 0.95);
-    border: 1px solid var(--border);
+    border-radius: 4px;
+    background: var(--bg-highlight);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.5);
     font-size: 11px;
     font-variant-numeric: tabular-nums;
     pointer-events: none;

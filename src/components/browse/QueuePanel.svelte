@@ -1,5 +1,5 @@
 <script lang="ts">
-  import { fly } from "svelte/transition";
+  import { slide } from "svelte/transition";
   import { cubicOut } from "svelte/easing";
   import Icon from "../Icon.svelte";
   import { api, type PlayerState, type QueueItem } from "../../lib/api";
@@ -78,7 +78,8 @@
 {/snippet}
 
 {#if ui.queueOpen}
-  <aside class="panel" transition:fly={{ x: 40, duration: 260, easing: cubicOut }}>
+  <aside class="panel" transition:slide={{ axis: "x", duration: 300, easing: cubicOut }}>
+    <div class="inner">
     <header>
       <h2>Queue</h2>
       <button class="x" title="Close (Q)" onclick={() => (ui.queueOpen = false)}><Icon name="close" size={18} /></button>
@@ -93,46 +94,53 @@
         {#each automix as item, i (i)}{@render row(item, items.length + i, false)}{/each}
       {/if}
     </div>
+    </div>
   </aside>
 {/if}
 
 <style>
-  .panel {
-    position: absolute; top: 64px; right: 0; bottom: 0; z-index: 20; width: min(400px, 100%);
-    display: flex; flex-direction: column;
-    background: rgba(18, 18, 24, 0.94); backdrop-filter: blur(24px);
-    border-left: 1px solid var(--border);
-    box-shadow: -24px 0 60px rgba(0, 0, 0, 0.45);
+  /* Docked beside the page like Spotify's queue, sliding open rather than covering it. */
+  .panel { flex: none; width: 360px; min-height: 0; border-radius: var(--radius-panel); background: var(--bg-panel); overflow: hidden; }
+  /* Fixed width inside, so the content does not reflow while the panel slides. */
+  .inner { width: 360px; height: 100%; display: flex; flex-direction: column; }
+  header { display: flex; align-items: center; justify-content: space-between; padding: 16px 12px 8px 16px; }
+  h2 { margin: 0; font-size: 16px; font-weight: 700; }
+  .x {
+    width: 32px; height: 32px; border-radius: 50%; display: grid; place-items: center; color: var(--text-muted);
+    transition: background var(--dur-fast) var(--ease), color var(--dur-fast) var(--ease), transform var(--dur-fast) var(--ease);
   }
-  header { display: flex; align-items: center; justify-content: space-between; padding: 18px 16px 10px 20px; }
-  h2 { margin: 0; font-size: 18px; }
-  .x { width: 32px; height: 32px; border-radius: 50%; display: grid; place-items: center; color: var(--text-muted); }
-  .x:hover { background: var(--surface-hover); color: var(--text); }
+  .x:hover { background: var(--bg-elevated); color: var(--text); transform: scale(1.06); }
   .list { flex: 1; min-height: 0; overflow-y: auto; padding: 0 8px 16px; }
-  .empty { padding: 24px 12px; color: var(--text-muted); font-size: 13.5px; }
-  .label { margin: 16px 12px 6px; font-size: 11.5px; font-weight: 700; letter-spacing: 0.8px; text-transform: uppercase; color: var(--text-faint); }
+  .list::-webkit-scrollbar { width: 8px; }
+  .empty { padding: 24px 8px; color: var(--text-muted); font-size: 14px; }
+  .label { margin: 20px 8px 6px; font-size: 16px; font-weight: 700; color: var(--text); }
   .item {
-    position: relative; display: grid; grid-template-columns: 44px minmax(0, 1fr) auto auto; align-items: center; gap: 12px;
-    padding: 7px 10px; border-radius: 10px; cursor: pointer;
-    transition: background 0.15s;
+    position: relative; display: grid; grid-template-columns: 48px minmax(0, 1fr) auto auto; align-items: center; gap: 12px;
+    padding: 8px; border-radius: var(--radius-sm); cursor: pointer;
+    transition: background var(--dur-fast) var(--ease);
   }
   .item:hover { background: var(--surface-hover); }
-  .item.current { background: color-mix(in srgb, var(--accent) 14%, transparent); }
+  .item:active { background: var(--surface-active); }
+  .item.current { background: color-mix(in srgb, var(--accent) 12%, transparent); }
   .item.over { box-shadow: inset 0 2px 0 var(--accent); }
-  .thumb { position: relative; width: 44px; height: 44px; border-radius: 6px; overflow: hidden; background: var(--surface-hover); }
+  .thumb { position: relative; width: 48px; height: 48px; border-radius: 4px; overflow: hidden; background: var(--bg-highlight); }
   .thumb img { width: 100%; height: 100%; object-fit: cover; }
-  .eq { position: absolute; inset: 0; display: flex; align-items: flex-end; justify-content: center; gap: 3px; padding-bottom: 13px; background: rgba(0, 0, 0, 0.55); }
-  .eq i { width: 3px; height: 14px; border-radius: 2px; background: var(--accent); animation: eq 0.9s ease-in-out infinite; transform-origin: bottom; }
+  .eq { position: absolute; inset: 0; display: flex; align-items: flex-end; justify-content: center; gap: 3px; padding-bottom: 15px; background: rgba(0, 0, 0, 0.55); }
+  .eq i { width: 3px; height: 14px; border-radius: 1px; background: var(--accent); animation: eq 0.9s ease-in-out infinite; transform-origin: bottom; }
   .eq i:nth-child(2) { animation-delay: -0.3s; }
   .eq i:nth-child(3) { animation-delay: -0.6s; }
   .eq.paused i { animation-play-state: paused; }
   @keyframes eq { 0%, 100% { transform: scaleY(0.3); } 50% { transform: scaleY(1); } }
-  .meta { min-width: 0; display: grid; }
-  .title { font-weight: 600; font-size: 13.5px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .meta { min-width: 0; display: grid; gap: 1px; }
+  .title { font-weight: 500; font-size: 15px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
   .current .title { color: var(--accent); }
-  .author { font-size: 12.5px; color: var(--text-muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-  .duration { font-size: 12.5px; color: var(--text-muted); font-variant-numeric: tabular-nums; }
-  .remove { width: 28px; height: 28px; border-radius: 50%; display: grid; place-items: center; color: var(--text-muted); opacity: 0; transition: opacity 0.15s; }
+  .author { font-size: 13.5px; color: var(--text-muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .duration { font-size: 13px; color: var(--text-muted); font-variant-numeric: tabular-nums; }
+  .remove {
+    width: 28px; height: 28px; border-radius: 50%; display: grid; place-items: center; color: var(--text-muted);
+    opacity: 0; transition: opacity var(--dur-fast) var(--ease), color var(--dur-fast) var(--ease), transform var(--dur-fast) var(--ease);
+  }
   .item:hover .remove { opacity: 1; }
-  .remove:hover { background: var(--surface-active); color: var(--text); }
+  .remove:hover { color: var(--text); transform: scale(1.1); }
+  @media (max-width: 1100px) { .panel, .inner { width: 300px; } }
 </style>

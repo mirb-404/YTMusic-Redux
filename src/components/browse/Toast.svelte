@@ -13,8 +13,8 @@
 <style>
   .toast {
     position: absolute; left: 50%; bottom: 20px; z-index: 80; translate: -50% 0;
-    max-width: min(520px, calc(100% - 48px)); padding: 11px 20px; border-radius: 22px;
-    background: #fff; color: #000; font-weight: 600; font-size: 13.5px;
+    max-width: min(520px, calc(100% - 48px)); padding: 12px 18px; border-radius: var(--radius);
+    background: #fff; color: #000; font-weight: 500; font-size: 14px;
     box-shadow: 0 16px 40px rgba(0, 0, 0, 0.5);
     white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
     pointer-events: none;

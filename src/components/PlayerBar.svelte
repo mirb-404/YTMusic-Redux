@@ -209,21 +209,20 @@
     grid-template-columns: minmax(240px, 1fr) minmax(320px, 560px) minmax(240px, 1fr);
     align-items: center;
     gap: 24px;
-    padding: 0 16px;
+    padding: 0 16px 0 12px;
     position: relative;
     isolation: isolate;
     overflow: hidden;
     background: var(--bg);
-    border-top: 1px solid var(--border);
   }
   /* Slightly see-through over the tint layer below. */
-  .bar.tinted { background: color-mix(in srgb, var(--bg) 78%, transparent); }
+  .bar.tinted { background: color-mix(in srgb, var(--bg) 82%, transparent); }
   .tint {
     position: absolute; inset: -60px; z-index: -1;
     width: calc(100% + 120px); height: calc(100% + 120px);
     object-fit: cover;
     filter: blur(50px) saturate(1.7);
-    opacity: 0.32;
+    opacity: 0.28;
     pointer-events: none;
   }
   section { position: relative; min-width: 0; }
@@ -233,17 +232,22 @@
   .art {
     position: relative;
     width: 56px; height: 56px; flex: none;
-    border-radius: 6px; overflow: hidden;
+    border-radius: 4px; overflow: hidden;
     display: grid; place-items: center;
-    background: var(--surface);
+    background: var(--bg-highlight);
     color: var(--text-faint);
+    box-shadow: 0 4px 14px rgba(0, 0, 0, 0.5);
+    transition: transform var(--dur) var(--ease);
   }
+  .art:not(:disabled):hover { transform: scale(1.04); }
+  .art img { animation: art-in var(--dur-slow) var(--ease-out); }
+  @keyframes art-in { from { opacity: 0; transform: scale(0.92); } }
   .art img { width: 100%; height: 100%; object-fit: cover; }
   .overlay {
     position: absolute; inset: 0;
     display: grid; place-items: center;
     background: rgba(0, 0, 0, 0.5); color: #fff;
-    opacity: 0; transition: opacity 0.15s var(--ease);
+    opacity: 0; transition: opacity var(--dur) var(--ease);
   }
   .art:not(:disabled):hover .overlay { opacity: 1; }
   .close-track {
@@ -259,8 +263,8 @@
   .track:hover .close-track, .close-track:focus-visible { opacity: 1; transform: none; }
   .close-track:hover { color: #fff; background: var(--danger); border-color: transparent; }
   .meta { min-width: 0; flex: 0 1 auto; }
-  .title { font-weight: 600; font-size: 14px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-  .sub { color: var(--text-muted); font-size: 12.5px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; margin-top: 2px; }
+  .title { font-weight: 500; font-size: 14px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .sub { color: var(--text-muted); font-size: 12px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; margin-top: 2px; }
   .dot { margin: 0 5px; color: var(--text-faint); }
   .ad {
     display: inline-block; margin-right: 6px; padding: 0 5px;
@@ -270,23 +274,25 @@
   .rate { display: flex; flex: none; margin-left: 4px; }
 
   .center { display: flex; flex-direction: column; align-items: stretch; gap: 0; }
-  .controls { display: flex; align-items: center; justify-content: center; gap: 12px; }
-  .icon-btn.big { width: 36px; height: 36px; color: var(--text); }
+  .controls { display: flex; align-items: center; justify-content: center; gap: 16px; margin-bottom: 4px; }
+  .icon-btn.big { width: 32px; height: 32px; color: var(--text-muted); }
+  .icon-btn.big:hover { color: var(--text); }
   .play {
-    width: 38px; height: 38px; border-radius: 50%;
+    width: 36px; height: 36px; border-radius: 50%;
     display: grid; place-items: center;
-    background: var(--text); color: var(--bg);
-    transition: transform 0.12s var(--ease);
+    background: var(--text); color: #000;
+    transition: transform var(--dur-fast) var(--ease), background var(--dur-fast) var(--ease);
   }
-  .play:hover { transform: scale(1.05); }
-  .play:active { transform: scale(0.96); }
+  .play:hover { transform: scale(1.06); }
+  .play:active { transform: scale(0.94); background: #dcdcdc; }
   .play:disabled { opacity: 0.35; transform: none; }
   .seek { display: flex; align-items: center; gap: 8px; }
-  .time { font-size: 11px; color: var(--text-faint); font-variant-numeric: tabular-nums; min-width: 36px; }
+  .time { font-size: 12px; color: var(--text-muted); font-variant-numeric: tabular-nums; min-width: 36px; }
   .time.end { text-align: right; }
 
   /* Toggles read as on through a dot under the icon, not by recoloring it. */
-  .bar .icon-btn.active { position: relative; color: var(--text); }
+  .bar .icon-btn.active { position: relative; color: var(--accent); }
+  .bar .icon-btn.active:hover { color: var(--accent-hover); }
   .bar .icon-btn.active::after {
     content: "";
     position: absolute; left: 50%; bottom: 1px;
@@ -300,24 +306,24 @@
   .countdown { font-size: 11px; font-weight: 600; color: var(--text-muted); font-variant-numeric: tabular-nums; margin-right: 4px; }
   .menu {
     position: absolute; bottom: calc(100% + 12px); right: -40px;
-    width: 180px; padding: 4px;
-    border-radius: 8px;
-    background: var(--bg-elevated);
-    border: 1px solid var(--border);
-    box-shadow: 0 12px 32px rgba(0, 0, 0, 0.5);
+    width: 196px; padding: 4px;
+    border-radius: var(--radius-sm);
+    background: var(--bg-highlight);
+    box-shadow: var(--shadow-pop);
+    transform-origin: bottom right;
     z-index: 5;
   }
   .menu-title { font-size: 12px; color: var(--text-faint); padding: 6px 10px 4px; }
-  .menu button { display: block; width: 100%; text-align: left; padding: 7px 10px; border-radius: 5px; font-size: 13px; }
-  .menu button:hover { background: var(--surface-hover); }
+  .menu button { display: block; width: 100%; text-align: left; padding: 10px 12px; border-radius: 2px; font-size: 14px; transition: background var(--dur-fast) var(--ease); }
+  .menu button:hover { background: rgba(255, 255, 255, 0.1); }
   .menu .off { color: var(--danger); }
 
   .volume { display: flex; align-items: center; gap: 2px; margin: 0 6px 0 4px; }
   .volume input {
     -webkit-appearance: none;
     appearance: none;
-    width: 88px; height: 4px; border-radius: 2px;
-    background: linear-gradient(90deg, var(--fill-color, var(--text-muted)) 0 var(--fill), rgba(255, 255, 255, 0.14) var(--fill) 100%);
+    width: 96px; height: 4px; border-radius: 2px;
+    background: linear-gradient(90deg, var(--fill-color, var(--text)) 0 var(--fill), rgba(255, 255, 255, 0.3) var(--fill) 100%);
     cursor: pointer;
   }
   .volume:hover input { --fill-color: var(--accent); }
@@ -325,8 +331,9 @@
     -webkit-appearance: none;
     width: 12px; height: 12px; border-radius: 50%;
     background: #fff;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.5);
     opacity: 0;
-    transition: opacity 0.12s;
+    transition: opacity var(--dur-fast) var(--ease);
   }
   .volume:hover input::-webkit-slider-thumb, .volume input:focus-visible::-webkit-slider-thumb { opacity: 1; }
 

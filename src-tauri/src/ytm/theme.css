@@ -3,9 +3,9 @@
    is hidden and its reserved space removed. */
 
 ytmusic-app {
-  --ytmr-accent: #f0445f;
-  --ytmr-bg: #0b0b0f;
-  --ytmr-surface: #0f0f14;
+  --ytmr-accent: #ff1f45;
+  --ytmr-bg: #000000;
+  --ytmr-surface: #121212;
   --ytmr-line: rgba(255, 255, 255, 0.08);
   --ytmusic-player-bar-height: 0px !important;
   /* Opaque on purpose: YTM also colors play-button icons with it, which a transparent
@@ -32,7 +32,7 @@ ytmusic-app *:not(.material-symbols-outlined) {
 
 /* html and body sit outside ytmusic-app, so its variables are not visible here. */
 html, body {
-  background: #0b0b0f !important;
+  background: #000000 !important;
 }
 
 /* YTM's page-header art backdrop. */
@@ -109,7 +109,7 @@ ytmusic-player-page #player {
 tp-yt-iron-dropdown ytmusic-menu-popup-renderer,
 ytmusic-menu-popup-renderer tp-yt-paper-listbox {
   border-radius: 10px !important;
-  background: #18181f !important;
+  background: #2a2a2a !important;
 }
 
 /* Scrollbars */

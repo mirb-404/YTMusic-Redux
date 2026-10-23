@@ -108,25 +108,25 @@
 {/if}
 
 <style>
-  .backdrop { position: fixed; inset: 0; z-index: 95; background: rgba(0, 0, 0, 0.55); backdrop-filter: blur(4px); }
+  .backdrop { position: fixed; inset: 0; z-index: 95; background: rgba(0, 0, 0, 0.7); }
   .dialog {
     position: fixed; z-index: 96; left: 50%; top: 50%; translate: -50% -50%;
     width: min(440px, calc(100vw - 48px)); max-height: min(620px, calc(100vh - 120px));
     display: flex; flex-direction: column;
-    padding: 20px; border-radius: 16px;
-    background: var(--bg-elevated); border: 1px solid var(--border);
-    box-shadow: 0 30px 80px rgba(0, 0, 0, 0.6);
+    padding: 24px; border-radius: var(--radius);
+    background: #282828;
+    box-shadow: var(--shadow-pop);
   }
   header { display: flex; align-items: center; justify-content: space-between; }
-  h2 { margin: 0; font-size: 18px; }
+  h2 { margin: 0; font-size: 24px; font-weight: 800; letter-spacing: -0.02em; }
   .x { width: 32px; height: 32px; border-radius: 50%; display: grid; place-items: center; color: var(--text-muted); }
   .x:hover { background: var(--surface-hover); color: var(--text); }
   .what { margin: 4px 0 12px; font-size: 13px; color: var(--text-muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-  .new { display: flex; align-items: center; gap: 12px; padding: 10px; border-radius: 10px; font-weight: 600; }
+  .new { display: flex; align-items: center; gap: 12px; padding: 8px; border-radius: 4px; font-weight: 600; transition: background var(--dur-fast) var(--ease); }
   .new:hover { background: var(--surface-hover); }
-  .plus { width: 40px; height: 40px; border-radius: 8px; display: grid; place-items: center; background: var(--surface-hover); }
+  .plus { width: 44px; height: 44px; border-radius: 4px; display: grid; place-items: center; background: var(--accent-gradient); color: #fff; }
   .list { overflow-y: auto; min-height: 0; margin-top: 4px; display: grid; gap: 2px; }
-  .target { display: flex; align-items: center; gap: 12px; padding: 12px 10px; border-radius: 10px; text-align: left; }
+  .target { display: flex; align-items: center; gap: 12px; padding: 12px 10px; border-radius: 4px; text-align: left; transition: background var(--dur-fast) var(--ease); }
   .target:hover:not(:disabled) { background: var(--surface-hover); }
   .name { flex: 1; min-width: 0; font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
   .saved { display: inline-flex; align-items: center; gap: 4px; font-size: 12px; color: var(--success); }
@@ -134,17 +134,18 @@
   form { display: grid; gap: 14px; margin-top: 8px; }
   label { display: grid; gap: 6px; font-size: 12.5px; color: var(--text-muted); }
   input, textarea {
-    padding: 10px 12px; border-radius: 10px; border: 1px solid var(--border);
-    background: var(--surface); color: var(--text); font: inherit; font-size: 14px; outline: none; resize: none;
+    padding: 10px 12px; border-radius: 4px; border: 1px solid transparent;
+    background: rgba(255, 255, 255, 0.1); color: var(--text); font: inherit; font-size: 14px; outline: none; resize: none;
   }
-  input:focus, textarea:focus { border-color: var(--accent); }
-  .privacy { display: flex; gap: 2px; padding: 3px; border-radius: 10px; background: var(--surface-hover); }
-  .privacy button { flex: 1; padding: 7px; border-radius: 8px; font-size: 13px; font-weight: 600; color: var(--text-muted); }
-  .privacy button.active { background: var(--bg-elevated); color: var(--text); }
+  input:focus, textarea:focus { border-color: rgba(255, 255, 255, 0.5); background: #333; }
+  .privacy { display: flex; gap: 2px; padding: 3px; border-radius: 999px; background: rgba(255, 255, 255, 0.08); }
+  .privacy button { flex: 1; padding: 7px; border-radius: 999px; transition: background var(--dur) var(--ease), color var(--dur) var(--ease); font-size: 13px; font-weight: 600; color: var(--text-muted); }
+  .privacy button.active { background: #fff; color: #000; }
   .actions { display: flex; justify-content: flex-end; gap: 8px; }
-  .actions button { height: 38px; padding: 0 20px; border-radius: 19px; font-weight: 700; }
+  .actions button { height: 44px; padding: 0 28px; border-radius: 999px; font-weight: 700; transition: transform var(--dur-fast) var(--ease); }
+  .actions button:hover:not(:disabled) { transform: scale(1.04); }
   .ghost { color: var(--text-muted); }
   .ghost:hover { background: var(--surface-hover); color: var(--text); }
-  .primary { background: #fff; color: #000; }
+  .primary { background: var(--accent); color: var(--accent-ink); }
   .primary:disabled { opacity: 0.4; }
 </style>

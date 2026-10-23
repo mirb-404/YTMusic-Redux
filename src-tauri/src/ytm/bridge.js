@@ -190,7 +190,7 @@
       ytmusic-section-list-renderer > #contents > :nth-child(n + 4) { animation-delay: 0.12s; }
       ytmusic-two-row-item-renderer .image-wrapper img { transition: transform 0.25s cubic-bezier(0.2, 0.7, 0.2, 1); }
       ytmusic-two-row-item-renderer:hover .image-wrapper img { transform: scale(1.04); }
-      yt-page-navigation-progress #progress { background: #f0445f !important; transition: transform 0.2s ease-out !important; }
+      yt-page-navigation-progress #progress { background: #ff1f45 !important; transition: transform 0.2s ease-out !important; }
 
       /* Up next: a floating glass pill above the app's player bar, centered under the page,
          tinted by the next track's artwork. */

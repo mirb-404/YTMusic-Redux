@@ -73,11 +73,11 @@
 </script>
 
 <div class="search" class:open={open && count > 0}>
-  <Icon name="search" size={20} />
+  <Icon name="search" size={22} />
   <input
     bind:this={input}
     bind:value={query}
-    placeholder="Search songs, albums, artists, podcasts"
+    placeholder="What do you want to play?"
     spellcheck="false"
     oninput={onInput}
     onkeydown={onKey}
@@ -108,34 +108,41 @@
 
 <style>
   .search {
-    position: relative; width: min(520px, 100%);
-    display: flex; align-items: center; gap: 10px;
-    height: 40px; padding: 0 8px 0 14px; border-radius: 20px;
-    background: var(--surface-hover); border: 1px solid transparent; color: var(--text-muted);
-    transition: background 0.15s, border-color 0.15s, border-radius 0.15s;
+    position: relative; width: min(480px, 100%);
+    display: flex; align-items: center; gap: 12px;
+    height: 48px; padding: 0 10px 0 16px; border-radius: 999px;
+    background: var(--bg-elevated); color: var(--text-muted);
+    box-shadow: inset 0 0 0 1px transparent;
+    transition: background var(--dur) var(--ease), box-shadow var(--dur) var(--ease), color var(--dur) var(--ease);
   }
-  .search:focus-within { background: var(--bg-elevated); border-color: var(--border); color: var(--text); }
-  .search.open { border-radius: 20px 20px 0 0; }
-  input { flex: 1; min-width: 0; height: 100%; border: 0; outline: 0; background: none; color: var(--text); font-size: 14px; }
-  input::placeholder { color: var(--text-faint); }
-  .clear { width: 28px; height: 28px; border-radius: 50%; display: grid; place-items: center; color: var(--text-muted); }
-  .clear:hover { background: var(--surface-hover); color: var(--text); }
+  .search:hover { background: var(--bg-highlight); box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.1); color: var(--text); }
+  .search:focus-within { background: var(--bg-highlight); box-shadow: inset 0 0 0 2px var(--text); color: var(--text); }
+  input { flex: 1; min-width: 0; height: 100%; border: 0; outline: 0; background: none; color: var(--text); font-size: 15px; }
+  input::placeholder { color: var(--text-muted); }
+  .clear {
+    width: 30px; height: 30px; border-radius: 50%; display: grid; place-items: center; color: var(--text-muted);
+    transition: color var(--dur-fast) var(--ease), transform var(--dur-fast) var(--ease);
+  }
+  .clear:hover { color: var(--text); transform: scale(1.1); }
   .dropdown {
-    position: absolute; left: -1px; right: -1px; top: 100%; z-index: 50;
-    padding: 6px; border-radius: 0 0 16px 16px;
-    background: var(--bg-elevated); border: 1px solid var(--border); border-top: 0;
-    box-shadow: 0 24px 48px rgba(0, 0, 0, 0.55);
+    position: absolute; left: 0; right: 0; top: calc(100% + 8px); z-index: 50;
+    padding: 6px; border-radius: var(--radius);
+    background: var(--bg-highlight);
+    box-shadow: var(--shadow-pop);
     max-height: 70vh; overflow-y: auto;
+    transform-origin: top center;
+    animation: drop var(--dur) var(--ease-out);
   }
-  .dropdown button { width: 100%; display: flex; align-items: center; gap: 12px; padding: 8px 10px; border-radius: 8px; text-align: left; color: var(--text-muted); }
-  .dropdown button:hover, .dropdown button.active { background: var(--surface-hover); color: var(--text); }
+  @keyframes drop { from { opacity: 0; transform: translateY(-6px) scale(0.98); } }
+  .dropdown button { width: 100%; display: flex; align-items: center; gap: 12px; padding: 8px 10px; border-radius: 4px; text-align: left; color: var(--text-muted); transition: background var(--dur-fast) var(--ease); }
+  .dropdown button:hover, .dropdown button.active { background: rgba(255, 255, 255, 0.1); color: var(--text); }
   .query span { color: var(--text-muted); }
   .query b { color: var(--text); font-weight: 700; }
   .divider { height: 1px; margin: 6px 4px; background: var(--border); }
-  .thumb { width: 40px; height: 40px; flex: none; border-radius: 6px; overflow: hidden; background: var(--surface-hover); }
+  .thumb { width: 40px; height: 40px; flex: none; border-radius: 4px; overflow: hidden; background: var(--bg-elevated); }
   .thumb.circle { border-radius: 50%; }
   .thumb img { width: 100%; height: 100%; object-fit: cover; }
   .meta { min-width: 0; display: grid; }
-  .title { color: var(--text); font-weight: 600; font-size: 13.5px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-  .sub { font-size: 12.5px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .title { color: var(--text); font-weight: 500; font-size: 14.5px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .sub { font-size: 13px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 </style>

@@ -48,7 +48,7 @@
   .badge {
     position: relative; width: 56px; height: 56px; border-radius: 14px;
     display: grid; place-items: center; color: #fff;
-    background: var(--accent);
+    background: var(--accent-gradient);
   }
   h1 { position: relative; font-size: 22px; margin: 18px 0 6px; }
   .sub { position: relative; margin: 0; font-size: 15px; color: var(--text-muted); }
@@ -59,7 +59,7 @@
     width: 52px; height: 64px;
     display: grid; place-items: center;
     font-size: 32px; font-weight: 800; font-variant-numeric: tabular-nums;
-    border-radius: 10px; background: var(--surface-hover); border: 1px solid var(--border);
+    border-radius: var(--radius); background: var(--bg-elevated); border: 1px solid var(--border);
   }
   .actions { position: relative; display: flex; gap: 12px; }
   .actions .btn { min-width: 120px; justify-content: center; padding: 10px 16px; }

@@ -101,15 +101,16 @@
     gap: 14px;
     padding: 14px;
     overflow: hidden;
-    background: #0f0f14;
+    background: var(--bg-panel);
     border: 1px solid var(--border);
   }
 
   .art {
     width: 126px; height: 126px; flex: none;
-    border-radius: 10px; overflow: hidden;
+    border-radius: var(--radius-sm); overflow: hidden;
     display: grid; place-items: center;
-    background: var(--surface-hover);
+    background: var(--bg-highlight);
+    box-shadow: var(--shadow-card);
   }
   .art img { width: 100%; height: 100%; object-fit: cover; }
 
@@ -131,9 +132,9 @@
     width: 42px; height: 42px; border-radius: 50%;
     display: grid; place-items: center;
     background: #fff; color: #000;
-    transition: transform 0.12s var(--ease), background 0.12s;
+    transition: transform var(--dur-fast) var(--ease), background var(--dur-fast) var(--ease);
   }
-  .play:hover { background: #e9e9ee; }
-  .play:active { transform: scale(0.95); }
+  .play:hover { transform: scale(1.06); }
+  .play:active { transform: scale(0.94); background: #dcdcdc; }
   .play:disabled { opacity: 0.4; }
 </style>

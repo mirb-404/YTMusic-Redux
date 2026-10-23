@@ -266,7 +266,7 @@
 </div>
 
 <style>
-  .shell { height: 100%; display: flex; flex-direction: column; background: #0b0b0f; }
+  .shell { height: 100%; display: flex; flex-direction: column; background: var(--bg); }
 
   .titlebar {
     height: 40px;
@@ -277,7 +277,6 @@
     gap: 12px;
     padding: 0 0 0 10px;
     background: var(--bg);
-    border-bottom: 1px solid var(--border);
   }
 
   .left, .right, .nav { display: flex; align-items: center; gap: 2px; }
@@ -288,7 +287,7 @@
   .logo {
     width: 20px; height: 20px; border-radius: 6px;
     display: grid; place-items: center;
-    background: var(--accent); color: #fff;
+    background: var(--accent-gradient); color: #fff;
   }
   .name { font-weight: 600; font-size: 13px; }
 
@@ -309,22 +308,24 @@
   .title { font-weight: 600; overflow: hidden; text-overflow: ellipsis; }
   .artist { color: var(--text-muted); overflow: hidden; text-overflow: ellipsis; }
   .artist::before { content: "·"; margin-right: 6px; color: var(--text-faint); }
-  .bar { position: absolute; left: 0; bottom: 0; height: 2px; background: var(--accent); }
+  .bar { position: absolute; left: 0; bottom: 0; height: 2px; background: var(--accent-gradient); }
 
   .menu-btn {
     display: flex; align-items: center; gap: 6px;
-    height: 28px; padding: 0 10px; margin-right: 4px;
-    border-radius: 6px;
-    color: var(--text-muted); font-size: 12.5px; font-weight: 600;
-    transition: background 0.12s, color 0.12s;
+    height: 30px; padding: 0 14px; margin-right: 6px;
+    border-radius: 999px;
+    background: var(--bg-highlight);
+    color: var(--text); font-size: 12.5px; font-weight: 700;
+    transition: background var(--dur-fast) var(--ease), transform var(--dur-fast) var(--ease);
   }
-  .menu-btn:hover { background: var(--surface-hover); color: var(--text); }
+  .menu-btn:hover { background: #3a3a3a; transform: scale(1.04); }
+  .menu-btn:active { transform: scale(0.97); }
   .divider { width: 1px; height: 18px; background: var(--border); margin: 0 6px; }
   .win-btn {
     width: 46px; height: 40px;
     display: grid; place-items: center;
     color: var(--text-muted);
-    transition: background 0.12s, color 0.12s;
+    transition: background var(--dur-fast) var(--ease), color var(--dur-fast) var(--ease);
   }
   .win-btn:hover { background: var(--surface-hover); color: var(--text); }
   .win-btn.close:hover { background: #c42b1c; color: #fff; }
@@ -345,17 +346,17 @@
     background-size: 200% 100%;
     animation: shimmer 1.4s linear infinite;
   }
-  .sk-nav { height: 64px; flex: none; display: flex; align-items: center; gap: 40px; padding: 0 24px; border-bottom: 1px solid var(--border); }
+  .sk-nav { height: 64px; flex: none; display: flex; align-items: center; gap: 40px; padding: 0 24px; }
   .sk-logo { width: 96px; height: 24px; }
-  .sk-search { width: min(480px, 40%); height: 40px; border-radius: 8px; }
-  .sk-body { flex: 1; min-height: 0; display: flex; }
-  .sk-side { width: 240px; flex: none; display: flex; flex-direction: column; gap: 10px; padding: 16px 12px; border-right: 1px solid var(--border); }
+  .sk-search { width: min(480px, 40%); height: 48px; border-radius: 999px; }
+  .sk-body { flex: 1; min-height: 0; display: flex; gap: var(--gutter); padding: 0 var(--gutter) var(--gutter); }
+  .sk-side { width: 240px; flex: none; display: flex; flex-direction: column; gap: 10px; padding: 16px 12px; border-radius: var(--radius-panel); background: var(--bg-panel); }
   .sk-entry { height: 36px; }
   .sk-entry.short { height: 44px; }
   .sk-gap { height: 12px; }
-  .sk-main { flex: 1; min-width: 0; padding: 20px 32px; display: flex; flex-direction: column; gap: 20px; overflow: hidden; }
+  .sk-main { flex: 1; min-width: 0; padding: 20px 32px; border-radius: var(--radius-panel); background: var(--bg-panel); display: flex; flex-direction: column; gap: 20px; overflow: hidden; }
   .sk-chips { display: flex; gap: 10px; }
-  .sk-chip { width: 84px; height: 32px; border-radius: 8px; }
+  .sk-chip { width: 84px; height: 32px; border-radius: 999px; }
   .sk-heading { width: 220px; height: 26px; }
   .sk-row { display: flex; gap: 20px; }
   .sk-card { width: 180px; aspect-ratio: 1; flex: none; border-radius: 8px; }
