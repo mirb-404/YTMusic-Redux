@@ -635,6 +635,7 @@
         const shape = d - offset;
         if (shape < this.TARGET[i] - this.EMPTY_DB) return 0;
         const gain = (this.TARGET[i] - shape) * this.STRENGTH;
+        if (Math.abs(gain) < 1) return 0;
         return Math.round(Math.max(-this.MAX_CUT, Math.min(this.MAX_BOOST[i], gain)) * 2) / 2;
       });
       // Loudness range: the spread between the quiet (10th percentile) and loud (95th)
@@ -647,10 +648,51 @@
     }
   };
 
+  // Track profiles smart audio has worked out, by video id, so a track heard before is tuned
+  // before its first note. Kept in the YTM page's storage, most recently played last.
+  const smartProfiles = {
+    KEY: "ytmr-smart-audio",
+    MAX: 3000,
+    map: null,
+    load() {
+      if (this.map) return this.map;
+      try {
+        this.map = new Map(Object.entries(JSON.parse(localStorage.getItem(this.KEY) || "{}")));
+      } catch {
+        this.map = new Map();
+      }
+      return this.map;
+    },
+    get(id) {
+      return this.load().get(id) ?? null;
+    },
+    set(id, profile) {
+      const map = this.load();
+      map.delete(id);
+      map.set(id, profile);
+      while (map.size > this.MAX) map.delete(map.keys().next().value);
+      try {
+        localStorage.setItem(this.KEY, JSON.stringify(Object.fromEntries(map)));
+      } catch {}
+    }
+  };
+
   // The audio engine below owns the config; smart audio only reads its band centers.
   const audioConfig = () => audio.config;
+  // Smart audio changes the sound at most once per track, and only at its start whenever it
+  // can: a remembered track is tuned before it is heard and stays that way. A track it has not
+  // heard plays as mastered for its first seconds of music, then takes one conservative
+  // setting that glides in and holds. It keeps listening to the whole track either way, and
+  // remembers the full-track result for the next time it plays.
   const smart = {
     FFT: 8192,
+    // 100 ms readings: 6 s of music for an unheard track's one decision, 30 s before a
+    // profile is worth remembering.
+    DECIDE: 60,
+    SAVE: 300,
+    // An unheard track gets this share of the correction from its opening seconds; the
+    // full-track profile applies in full from the next listen.
+    FIRST_LISTEN: 0.75,
     timer: null,
     track: "",
     energy: new Float64Array(10),
@@ -658,20 +700,49 @@
     frames: 0,
     gains: new Array(10).fill(0),
     ratio: 1,
+    locked: false,
+    glide: 0.05,
+    state: "off",
     bandOf: null,
+    report(state) {
+      if (state === this.state) return;
+      this.state = state;
+      invoke("ytm_smart_audio", { state }).catch(() => {});
+    },
     start(audio) {
-      if (this.timer) return;
-      this.timer = setInterval(() => this.sample(audio), 100);
+      if (!this.timer) this.timer = setInterval(() => this.sample(audio), 100);
+      this.begin(audio, audio.trackId);
     },
     stop() {
+      if (!this.timer && this.state === "off") return;
       clearInterval(this.timer);
       this.timer = null;
+      this.save();
+      this.track = "";
+      this.report("off");
     },
-    reset(track) {
-      this.track = track;
+    begin(audio, id) {
+      if (!id || id === this.track) return;
+      this.save();
+      this.track = id;
       this.energy = new Float64Array(10);
       this.levels = [];
       this.frames = 0;
+      const known = smartProfiles.get(id);
+      this.locked = !!known;
+      this.gains = known ? known.g : new Array(10).fill(0);
+      this.ratio = known ? known.r : 1;
+      // At a track's start the change lands before the music is heard.
+      this.glide = 0.05;
+      this.report(known ? "tuned" : "listening");
+      audio.applyGraph();
+    },
+    save() {
+      if (!this.track || this.frames < this.SAVE) return;
+      // A longer listen replaces a shorter one, never the other way round.
+      if ((smartProfiles.get(this.track)?.n ?? 0) >= this.frames) return;
+      const { gains, ratio } = smartMath.solve(this.energy, this.levels);
+      smartProfiles.set(this.track, { g: gains, r: ratio, n: this.frames });
     },
     // FFT bin to equalizer band, by octave edges around each band's center.
     bands(g) {
@@ -689,7 +760,7 @@
       const g = audio.graph;
       // Ads would skew a track's measurements; the ad blocker mutes them anyway.
       if (!g || g.el.paused || g.el.muted) return;
-      if (audio.trackId !== this.track) this.reset(audio.trackId);
+      if (audio.trackId !== this.track) this.begin(audio, audio.trackId);
       if (!this.bandOf) this.bands(g);
       const wave = (this.wave ??= new Float32Array(this.FFT));
       g.analyser.getFloatTimeDomainData(wave);
@@ -706,14 +777,18 @@
         if (band >= 0) this.energy[band] += 10 ** (spectrum[i] / 10);
       }
       this.frames++;
-      // A first estimate after 3 s of music, refined every second; the graph glides between
-      // estimates, so the changes are not heard as steps.
-      if (this.frames >= 30 && this.frames % 10 === 0) {
+      if (!this.locked && this.frames >= this.DECIDE) {
         const { gains, ratio } = smartMath.solve(this.energy, this.levels);
-        this.gains = gains;
-        this.ratio = ratio;
+        this.gains = gains.map((v) => Math.round(v * this.FIRST_LISTEN * 2) / 2);
+        this.ratio = Math.round((1 + (ratio - 1) * this.FIRST_LISTEN) * 10) / 10;
+        this.locked = true;
+        // About 4 s to settle: heard as the mix opening up, not as a step.
+        this.glide = 1.4;
+        this.report("tuned");
         audio.applyGraph();
       }
+      // Remembered along the way too, so closing the app mid-track keeps what was learned.
+      if (this.frames % this.SAVE === 0) this.save();
     }
   };
 
@@ -753,6 +828,7 @@
       if (!this.config || videoId === this.trackId) return;
       this.trackId = videoId;
       this.applyRate();
+      if (this.config.smartAudio) smart.begin(this, videoId);
       // A user's own click on YTM's Song/Video switch wins for that track.
       if (this.manualSwitch) {
         this.manualSwitch = false;
@@ -929,8 +1005,9 @@
       if (!g) return;
       if (smartAudio) smart.start(this);
       const now = g.ctx.currentTime;
-      // Smart audio's estimates glide in over a few seconds; manual changes apply at once.
-      const glide = smartAudio ? 1.5 : 0.05;
+      // Smart audio sets its own pace (instant at a track's start, slow mid-track); manual
+      // changes apply at once.
+      const glide = smartAudio ? smart.glide : 0.05;
       const gains = smartAudio ? smart.gains : equalizer.enabled ? equalizer.gains : null;
       g.filters.forEach((f, i) => f.gain.setTargetAtTime(gains ? gains[i] : 0, now, glide));
       const w = stereoWidth / 100;

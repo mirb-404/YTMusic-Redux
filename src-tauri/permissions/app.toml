@@ -17,6 +17,7 @@ permissions = [
   "allow-ytm-window-action",
   "allow-ytm-innertube",
   "allow-ytm-player-page",
+  "allow-ytm-smart-audio",
   "allow-keyboard-bindings",
   "allow-keyboard-action"
 ]

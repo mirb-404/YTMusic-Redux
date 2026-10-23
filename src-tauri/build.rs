@@ -14,6 +14,7 @@ const BRIDGE_COMMANDS: &[&str] = &[
     "ytm_window_action",
     "ytm_innertube",
     "ytm_player_page",
+    "ytm_smart_audio",
 ];
 
 const UI_COMMANDS: &[&str] = &[

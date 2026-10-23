@@ -150,7 +150,8 @@ const memory: Memory = {
   tourOpen: false,
   ytmPlayerPage: false,
   ytmForeignPage: false,
-  videoView: "closed"
+  videoView: "closed",
+  smartAudio: "tuned"
 };
 
 const settings: Settings = {

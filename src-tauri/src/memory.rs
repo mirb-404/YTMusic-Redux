@@ -1,9 +1,22 @@
 //! In-memory runtime flags shared with the UI windows (port of upstream `MemoryStoreSchema`).
 
-use serde::Serialize;
+use serde::{Deserialize, Serialize};
 use std::collections::BTreeMap;
 use std::sync::Mutex;
 use tauri::{AppHandle, Emitter};
+
+/// What smart audio is doing for the playing track, for the player bar's indicator.
+#[derive(Debug, Clone, Copy, Default, PartialEq, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub enum SmartAudio {
+    /// Turned off, or nothing playing through it.
+    #[default]
+    Off,
+    /// Measuring a track it has not heard before.
+    Listening,
+    /// Tuned for this track, from this listen or a remembered one.
+    Tuned,
+}
 
 /// Where YTM's player page (the video view) is shown over the app's own pages.
 #[derive(Debug, Clone, Copy, Default, PartialEq, Serialize)]
@@ -46,6 +59,7 @@ pub struct Memory {
     /// the user.
     pub ytm_foreign_page: bool,
     pub video_view: VideoView,
+    pub smart_audio: SmartAudio,
 }
 
 pub struct MemoryStore {

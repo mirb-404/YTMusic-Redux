@@ -97,6 +97,7 @@ export type Memory = {
   ytmPlayerPage: boolean;
   ytmForeignPage: boolean;
   videoView: "closed" | "open" | "mini";
+  smartAudio: "off" | "listening" | "tuned";
 };
 
 export type LyricLine = { time: number; text: string };

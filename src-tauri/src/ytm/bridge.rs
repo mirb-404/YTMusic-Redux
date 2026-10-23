@@ -190,6 +190,14 @@ pub async fn ytm_window_action(webview: Webview, app: AppHandle, action: String)
     result.map_err(|e| e.to_string())
 }
 
+/// Smart audio's state for the playing track changed.
+#[tauri::command]
+pub fn ytm_smart_audio(webview: Webview, app: AppHandle, state: crate::memory::SmartAudio) -> Result<()> {
+    ensure_ytm(&webview)?;
+    app_ctx(&app).memory.update(&app, |m| m.smart_audio = state);
+    Ok(())
+}
+
 /// YTM's player page opened or closed.
 #[tauri::command]
 pub fn ytm_player_page(webview: Webview, app: AppHandle, open: bool) -> Result<()> {

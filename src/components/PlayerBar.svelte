@@ -44,6 +44,7 @@
   const sleepLeft = $derived(memory?.sleepTimerEndsAt ? Math.max(0, (memory.sleepTimerEndsAt - now) / 1000) : null);
 
   const nowPlayingOpen = $derived(memory?.nowPlayingOpen ?? false);
+  const smartState = $derived(video ? (memory?.smartAudio ?? "off") : "off");
 
   onMount(() => {
     const timer = setInterval(() => (now = Date.now()), 1000);
@@ -144,6 +145,14 @@
   </section>
 
   <section class="extras">
+    {#if smartState !== "off"}
+      <!-- Smart audio at work: breathing while it listens to a new track, lit once tuned. -->
+      <button
+        class="icon-btn smart {smartState}"
+        title={smartState === "tuned" ? "Smart audio: tuned for this track" : "Smart audio: listening to this track"}
+        onclick={() => api.openSettings("audio")}><Icon name="smartAudio" size={18} /></button
+      >
+    {/if}
     <button class="icon-btn" title="Add to playlist" disabled={!video} onclick={() => api.command("addToPlaylist")}><Icon name="playlistAdd" size={20} /></button>
     <div class="sleep" data-tour="sleep">
       <button class="icon-btn" class:active={sleepLeft !== null} title="Sleep timer" onclick={() => (sleepOpen = !sleepOpen)}>
@@ -304,6 +313,11 @@
   .rate .icon-btn.active::after { display: none; }
 
   .extras { display: flex; align-items: center; justify-content: flex-end; gap: 2px; }
+  .smart { width: 28px; height: 28px; transition: color 0.6s var(--ease), filter 0.6s var(--ease); }
+  .smart.listening { color: var(--text-muted); animation: listen 1.6s ease-in-out infinite; }
+  .smart.tuned { color: var(--accent); filter: drop-shadow(0 0 4px color-mix(in srgb, var(--accent) 70%, transparent)); }
+  .smart.tuned:hover { color: var(--accent-hover); }
+  @keyframes listen { 50% { opacity: 0.45; } }
   .sleep { position: relative; display: flex; align-items: center; }
   .countdown { font-size: 11px; font-weight: 600; color: var(--text-muted); font-variant-numeric: tabular-nums; margin-right: 4px; }
   .menu {

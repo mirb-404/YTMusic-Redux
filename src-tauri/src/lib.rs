@@ -251,6 +251,7 @@ pub fn run() {
             music::music_queue_move,
             ytm::bridge::ytm_innertube,
             ytm::bridge::ytm_player_page,
+            ytm::bridge::ytm_smart_audio,
         ])
         .build(tauri::generate_context!())
         .expect("error while building tauri application")

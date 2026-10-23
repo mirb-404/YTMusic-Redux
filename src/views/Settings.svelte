@@ -307,7 +307,7 @@
                 <Row
                   title="Smart audio"
                   beta
-                  description="Listens to each track and tunes the equalizer and leveler for it: tames boomy or harsh mixes, fills out thin ones, and evens out tracks with big quiet and loud swings. Takes a few seconds to settle on each track."
+                  description="Tunes the equalizer and leveler for each track: tames boomy or harsh mixes, fills out thin ones, and evens out big quiet and loud swings. A new track is tuned once after its first seconds; tracks heard before are tuned from the first note. The icon in the player bar lights up when a track is tuned."
                 >
                   <Toggle label="Smart audio" checked={s.playback.smartAudio} onchange={(v) => set("playback.smartAudio", v)} />
                 </Row>
