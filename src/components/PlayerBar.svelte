@@ -209,7 +209,7 @@
     grid-template-columns: minmax(240px, 1fr) minmax(320px, 560px) minmax(240px, 1fr);
     align-items: center;
     gap: 24px;
-    padding: 0 16px 0 12px;
+    padding: 0 16px;
     position: relative;
     isolation: isolate;
     overflow: hidden;

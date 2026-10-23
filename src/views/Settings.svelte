@@ -101,6 +101,34 @@
     }
   }
 
+  // The audio tab's sound settings at their defaults (settings.rs `Playback::default`).
+  const AUDIO_DEFAULTS: [string, unknown][] = [
+    ["playback.equalizer.enabled", false],
+    ["playback.equalizer.gains", [0, 0, 0, 0, 0, 0, 0, 0, 0, 0]],
+    ["playback.volumeLeveler", false],
+    ["playback.stereoWidth", 100],
+    ["playback.playbackRate", 100],
+    ["playback.crossfadeSeconds", 0]
+  ];
+  const audioIsDefault = $derived(
+    !!s &&
+      !s.playback.equalizer.enabled &&
+      s.playback.equalizer.gains.every((g) => g === 0) &&
+      !s.playback.volumeLeveler &&
+      s.playback.stereoWidth === 100 &&
+      s.playback.playbackRate === 100 &&
+      s.playback.crossfadeSeconds === 0
+  );
+
+  async function resetAudio() {
+    try {
+      for (const [key, value] of AUDIO_DEFAULTS) await api.setSetting(key, value);
+    } catch (e) {
+      showError(e);
+    }
+    s = await api.getSettings();
+  }
+
   async function pickCss() {
     const path = await api.pickCssFile();
     if (path) await set("appearance.customCssPath", path);
@@ -331,6 +359,7 @@
                   </div>
                 </Row>
               </div>
+              <button class="btn reset" disabled={audioIsDefault} onclick={resetAudio}><Icon name="refresh" size={16} />Restore audio defaults</button>
             {:else if tab === "integrations"}
               <h1>Integrations</h1>
               <h2>Companion server</h2>

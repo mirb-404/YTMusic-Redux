@@ -156,7 +156,16 @@ pub async fn music_suggestions(app: AppHandle, input: String) -> Result<parse::S
 
 #[tauri::command]
 pub async fn music_guide(app: AppHandle) -> Result<Vec<parse::GuideEntry>> {
-    Ok(parse::guide(&call(&app, "guide", "", json!({})).await?))
+    let (guide, library) = tokio::join!(
+        call(&app, "guide", "", json!({})),
+        call(&app, "browse", "", json!({ "browseId": "FEmusic_liked_playlists" }))
+    );
+    let mut entries = parse::guide(&guide?);
+    // Covers are a nicety: without the library page the sidebar still lists the playlists.
+    if let Ok(library) = library {
+        parse::guide_covers(&mut entries, &parse::page(&library));
+    }
+    Ok(entries)
 }
 
 #[tauri::command]

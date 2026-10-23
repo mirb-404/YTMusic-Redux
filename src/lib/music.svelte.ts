@@ -67,7 +67,7 @@ export type Header = {
 export type Chip = { text: string; endpoint: Endpoint | null; selected: boolean };
 export type Page = { header: Header | null; chips: Chip[]; sections: Section[]; continuation: Continuation | null };
 export type Suggestions = { queries: Run[][]; items: Item[] };
-export type GuideEntry = { title: string; subtitle: string; endpoint: Endpoint; play: Endpoint | null };
+export type GuideEntry = { title: string; subtitle: string; endpoint: Endpoint; play: Endpoint | null; thumbnails: Thumbnail[] };
 
 export const music = {
   browse: (endpoint: Endpoint) => invoke<Page>("music_browse", { endpoint }),

@@ -102,7 +102,7 @@
     <button class="round" title="Forward (Alt+Right)" disabled={!router.canForward} onclick={() => router.forward()}><Icon name="chevronRight" size={22} /></button>
   </div>
   <div class="center" data-tauri-drag-region={drag}>
-    <button class="home" class:active={onHome} title="Home" onclick={() => router.go({ kind: "browse", endpoint: HOME })}><Icon name="home" size={24} /></button>
+    <button class="home" class:active={onHome} title="Home" onclick={() => router.go({ kind: "browse", endpoint: HOME })}><Icon name={onHome ? "homeFilled" : "home"} size={24} /></button>
     <div class="search-slot" data-tour="search"><SearchBox bind:this={search} /></div>
   </div>
   <div class="right">{@render controls()}</div>
@@ -145,11 +145,12 @@
 <style>
   .topbar {
     height: 64px; flex: none;
-    display: grid; grid-template-columns: 240px minmax(0, 1fr) auto; align-items: center;
-    padding-left: 12px;
+    display: grid; grid-template-columns: 280px minmax(0, 1fr) auto; align-items: center;
+    /* A gutter above and below the 48px controls, the same 8px that separates the panels. */
+    padding: var(--gutter) 0 var(--gutter) var(--gutter);
     background: var(--bg);
   }
-  .history { display: flex; gap: 8px; padding-left: 4px; }
+  .history { display: flex; gap: 8px; padding-left: 8px; }
   .round {
     width: 32px; height: 32px; border-radius: 50%;
     display: grid; place-items: center;
@@ -172,10 +173,10 @@
   .home:active { transform: scale(0.96); }
   .home.active { color: var(--text); }
   .search-slot { width: min(480px, 100%); display: flex; }
-  .right { display: flex; align-items: center; align-self: stretch; }
+  .right { display: flex; align-items: center; align-self: start; height: 48px; margin-top: calc(-1 * var(--gutter)); }
 
   /* Spotify's layout: rounded panels floating on black, a gutter apart. */
-  .body { flex: 1; min-height: 0; display: flex; gap: var(--gutter); padding: 0 var(--gutter) var(--gutter); }
+  .body { flex: 1; min-height: 0; display: flex; gap: var(--gutter); padding: var(--gutter); padding-top: 0; }
   .content {
     position: relative;
     flex: 1; min-width: 0; overflow-y: auto; overflow-x: hidden; scrollbar-gutter: stable;

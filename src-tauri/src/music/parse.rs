@@ -210,6 +210,8 @@ pub struct GuideEntry {
     pub subtitle: String,
     pub endpoint: Value,
     pub play: Option<Value>,
+    /// The playlist's cover; the guide has none, so it comes from the library page.
+    pub thumbnails: Vec<Thumbnail>,
 }
 
 // --- helpers
@@ -805,9 +807,27 @@ pub fn guide(response: &Value) -> Vec<GuideEntry> {
                 subtitle: text(e.get("formattedSubtitle")),
                 play: self::endpoint(get(e, &["mouseOverButton", "musicPlayButtonRenderer", "playNavigationEndpoint"])),
                 endpoint,
+                thumbnails: Vec::new(),
             })
         })
         .collect()
+}
+
+/// Gives the guide's playlists the covers YTM shows for them on the library's playlists page.
+pub fn guide_covers(entries: &mut [GuideEntry], library: &Page) {
+    let browse_id = |e: &Value| e.pointer("/browseEndpoint/browseId").and_then(Value::as_str).map(str::to_string);
+    let covers: std::collections::HashMap<String, &Vec<Thumbnail>> = library
+        .sections
+        .iter()
+        .flat_map(|s| &s.items)
+        .filter(|i| !i.thumbnails.is_empty())
+        .filter_map(|i| Some((browse_id(i.endpoint.as_ref()?)?, &i.thumbnails)))
+        .collect();
+    for entry in entries {
+        if let Some(t) = browse_id(&entry.endpoint).and_then(|id| covers.get(&id)) {
+            entry.thumbnails = (*t).clone();
+        }
+    }
 }
 
 #[derive(Debug, Clone, Serialize)]
@@ -843,6 +863,23 @@ mod tests {
     fn fixture(name: &str) -> Value {
         let path = format!("{}/tests/fixtures/music/{name}.json", env!("CARGO_MANIFEST_DIR"));
         serde_json::from_str(&std::fs::read_to_string(path).unwrap()).unwrap()
+    }
+
+    #[test]
+    fn guide_covers_match_by_browse_id() {
+        let entry = |id: &str| GuideEntry { title: id.into(), subtitle: String::new(), endpoint: json!({ "browseEndpoint": { "browseId": id } }), play: None, thumbnails: Vec::new() };
+        let cover = vec![Thumbnail { url: "https://lh3.googleusercontent.com/x=w226-h226".into(), width: 226, height: 226 }];
+        let library = Page {
+            sections: vec![Section {
+                items: vec![Item { endpoint: Some(json!({ "browseEndpoint": { "browseId": "VLLM" } })), thumbnails: cover.clone(), ..Default::default() }],
+                ..Default::default()
+            }],
+            ..Default::default()
+        };
+        let mut entries = vec![entry("VLLM"), entry("VLPLother")];
+        guide_covers(&mut entries, &library);
+        assert_eq!(entries[0].thumbnails, cover);
+        assert!(entries[1].thumbnails.is_empty());
     }
 
     #[test]

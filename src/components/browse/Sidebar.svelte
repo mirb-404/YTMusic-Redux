@@ -2,16 +2,17 @@
   import { onMount } from "svelte";
   import Icon from "../Icon.svelte";
   import type { IconName } from "../../lib/icons";
-  import { EXPLORE, HISTORY, HOME, LIBRARY, music, router, ui, type Endpoint, type GuideEntry } from "../../lib/music.svelte";
+  import { art, EXPLORE, HISTORY, HOME, LIBRARY, music, router, ui, type Endpoint, type GuideEntry } from "../../lib/music.svelte";
 
   // Refreshed when the shell sees the session change (signing in).
   let { session }: { session: number } = $props();
 
-  const nav: { label: string; icon: IconName; endpoint: Endpoint }[] = [
-    { label: "Home", icon: "home", endpoint: HOME },
-    { label: "Explore", icon: "explore", endpoint: EXPLORE },
-    { label: "Library", icon: "library", endpoint: LIBRARY },
-    { label: "History", icon: "history", endpoint: HISTORY }
+  // The page on screen shows its icon filled.
+  const nav: { label: string; icon: IconName; active: IconName; endpoint: Endpoint }[] = [
+    { label: "Home", icon: "home", active: "homeFilled", endpoint: HOME },
+    { label: "Explore", icon: "explore", active: "exploreFilled", endpoint: EXPLORE },
+    { label: "Library", icon: "library", active: "libraryFilled", endpoint: LIBRARY },
+    { label: "History", icon: "history", active: "history", endpoint: HISTORY }
   ];
 
   let playlists = $state<GuideEntry[]>([]);
@@ -46,15 +47,16 @@
 <aside class="sidebar">
   <nav class="main panel" data-tour="sidebar">
     {#each nav as n (n.label)}
-      <button class:active={activeId === n.endpoint.browseEndpoint?.browseId} onclick={() => router.go({ kind: "browse", endpoint: n.endpoint })}>
-        <Icon name={n.icon} size={24} /><span>{n.label}</span>
+      {@const active = activeId === n.endpoint.browseEndpoint?.browseId}
+      <button class:active onclick={() => router.go({ kind: "browse", endpoint: n.endpoint })}>
+        <Icon name={active ? n.active : n.icon} size={24} /><span>{n.label}</span>
       </button>
     {/each}
   </nav>
 
   <section class="library panel">
     <div class="label-row">
-      <span class="label"><Icon name="library" size={22} />Your Library</span>
+      <span class="label"><Icon name="library" size={24} />Your Library</span>
       {#if signedIn}
         <button class="new" title="New playlist" onclick={() => (ui.dialog = { target: null, create: true })}><Icon name="add" size={18} /></button>
       {/if}
@@ -70,10 +72,14 @@
         {#each playlists as p, i (p.endpoint.browseEndpoint?.browseId)}
           <div class="playlist" class:active={activeId === p.endpoint.browseEndpoint?.browseId} style:--i={Math.min(i, 12)}>
             <button class="open" onclick={() => router.go({ kind: "browse", endpoint: p.endpoint })}>
-              <span class="tile" style:--hue={hue(p.title)} aria-hidden="true">{p.title.trim().charAt(0).toUpperCase()}</span>
+              {#if p.thumbnails.length}
+                <img class="tile" src={art(p.thumbnails, 48)} alt="" loading="lazy" decoding="async" />
+              {:else}
+                <span class="tile" style:--hue={hue(p.title)} aria-hidden="true">{p.title.trim().charAt(0).toUpperCase()}</span>
+              {/if}
               <span class="text">
                 <span class="name">{p.title}</span>
-                <span class="owner">Playlist{#if p.subtitle} · {p.subtitle}{/if}</span>
+                <span class="owner">{p.subtitle.toLowerCase().includes("playlist") ? p.subtitle : ["Playlist", p.subtitle].filter(Boolean).join(" · ")}</span>
               </span>
             </button>
             {#if p.play}<button class="play" title="Play {p.title}" onclick={() => music.play(p.play!)}><Icon name="play" size={16} /></button>{/if}
@@ -90,7 +96,7 @@
   .main { display: grid; gap: 2px; padding: 8px; }
   .main button {
     display: flex; align-items: center; gap: 18px;
-    height: 44px; padding: 0 14px; border-radius: var(--radius-sm);
+    height: 44px; padding: 0 8px; border-radius: var(--radius-sm);
     font-weight: 700; font-size: 15px; color: var(--text-muted);
     transition: color var(--dur) var(--ease);
   }
@@ -101,8 +107,8 @@
   .main button.active :global(svg) { color: var(--accent); }
 
   .library { flex: 1; min-height: 0; display: flex; flex-direction: column; padding: 4px 8px 8px; }
-  .label-row { display: flex; align-items: center; justify-content: space-between; padding: 10px 6px 10px 14px; }
-  .label { display: flex; align-items: center; gap: 14px; font-size: 15px; font-weight: 700; color: var(--text-muted); }
+  .label-row { display: flex; align-items: center; justify-content: space-between; padding: 10px 0 10px 8px; }
+  .label { display: flex; align-items: center; gap: 18px; font-size: 15px; font-weight: 700; color: var(--text-muted); }
   .new {
     width: 32px; height: 32px; border-radius: 50%; display: grid; place-items: center; color: var(--text-muted);
     transition: background var(--dur-fast) var(--ease), color var(--dur-fast) var(--ease), transform var(--dur-fast) var(--ease);
@@ -120,7 +126,7 @@
   .playlist:hover { background: var(--surface-hover); }
   .playlist.active { background: var(--surface-active); }
   .open { flex: 1; min-width: 0; display: flex; align-items: center; gap: 12px; text-align: left; padding: 8px; }
-  /* Playlists have no artwork in the guide, so each gets a tile in its own color. */
+  /* YTM's playlist cover; a playlist without one gets a tile in its own color. */
   .tile {
     width: 48px; height: 48px; flex: none; border-radius: 4px;
     display: grid; place-items: center;
@@ -128,6 +134,7 @@
     background: linear-gradient(135deg, hsl(var(--hue) 70% 48%), hsl(calc(var(--hue) + 40) 75% 28%));
     box-shadow: 0 4px 12px rgba(0, 0, 0, 0.35);
   }
+  img.tile { object-fit: cover; background: var(--bg-highlight); }
   .text { min-width: 0; display: grid; gap: 2px; }
   .name { font-size: 15px; font-weight: 500; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
   .active .name { color: var(--accent); }

@@ -107,6 +107,7 @@ input, select { font: inherit; color: inherit; }
 .btn.primary { background: var(--accent); border-color: transparent; color: var(--accent-ink); }
 .btn.primary:hover { background: var(--accent-hover); }
 .btn.danger { color: var(--danger); }
+.btn:disabled { opacity: 0.4; pointer-events: none; }
 
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after { animation: none !important; transition: none !important; }
