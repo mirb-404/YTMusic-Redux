@@ -35,7 +35,7 @@
   <button class="pill light" onclick={() => music.signIn()}><Icon name="account" size={18} />Sign in</button>
 {:else if account}
   <div class="account">
-    <button class="avatar" class:open title={account.name ? `Signed in as ${account.name}` : "Signed in"} aria-haspopup="menu" aria-expanded={open} disabled={busy} onclick={() => (open = !open)}>
+    <button class="avatar" class:open class:photo title={account.name ? `Signed in as ${account.name}` : "Signed in"} aria-haspopup="menu" aria-expanded={open} disabled={busy} onclick={() => (open = !open)}>
       {#if photo}<img src={photo} alt="" />{:else if initial}<span>{initial}</span>{:else}<Icon name="account" size={20} />{/if}
     </button>
     {#if open}
@@ -63,7 +63,7 @@
   .pill:active { transform: scale(0.97); }
   .account { position: relative; margin-right: 6px; }
   .avatar {
-    width: 32px; height: 32px; border-radius: 50%; overflow: hidden;
+    width: 32px; height: 32px; padding: 0; border-radius: 50%; overflow: hidden;
     display: grid; place-items: center;
     background: var(--accent); color: var(--accent-ink); font-weight: 800; font-size: 14px;
     outline: 4px solid var(--bg-elevated);
@@ -71,7 +71,9 @@
   }
   .avatar:hover:not(:disabled), .avatar.open { transform: scale(1.06); }
   .avatar:disabled { opacity: 0.5; }
-  .avatar img { width: 100%; height: 100%; object-fit: cover; }
+  .avatar.photo { background: var(--bg-highlight); }
+  /* Slight zoom so the photo fills the circle edge to edge, with no ring of background. */
+  .avatar img { display: block; width: 100%; height: 100%; object-fit: cover; transform: scale(1.12); }
   .scrim { position: fixed; inset: 0; z-index: 40; }
   .menu {
     position: absolute; right: 0; top: calc(100% + 10px); z-index: 41; min-width: 220px; padding: 4px;

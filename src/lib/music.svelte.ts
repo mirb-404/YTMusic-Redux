@@ -133,6 +133,8 @@ export function art(thumbs: Thumbnail[] | undefined, size: number): string | nul
     const h = Math.round(best.height * scale);
     return best.url.replace(/=w\d+-h\d+[^/]*$/, `=w${w}-h${h}-l90-rj`);
   }
+  // yt3.ggpht.com channel/account photos are square and sized by `=s<px>`.
+  if (/=s\d+/.test(best.url)) return best.url.replace(/=s\d+/, `=s${want}`);
   return best.url;
 }
 
