@@ -10,7 +10,7 @@
   import Tour from "../components/Tour.svelte";
   import Browser from "../components/browse/Browser.svelte";
   import UpNext from "../components/browse/UpNext.svelte";
-  import { nowPlaying } from "../lib/music.svelte";
+  import { auth, nowPlaying } from "../lib/music.svelte";
   import { keyboardControls } from "../lib/keyboard";
   import { api, bestThumbnail, onMemory, onPlayerState, onSettings, type Memory, type PlayerState, type Settings } from "../lib/api";
   import { LyricsTrack } from "../lib/lyrics.svelte";
@@ -74,11 +74,10 @@
   });
 
   // Leaving a sign-in page back to YouTube Music changes the session the pages use.
-  let session = $state(0);
   let wasForeign = false;
   $effect(() => {
     const foreign = memory?.ytmForeignPage ?? false;
-    if (wasForeign && !foreign) session++;
+    if (wasForeign && !foreign) auth.session++;
     wasForeign = foreign;
   });
 
@@ -184,7 +183,7 @@
   {#if native}
     <!-- Kept mounted under the lyrics view, so pages keep their place. -->
     <div class="native">
-      <Browser controls={windowControls} {drag} {session} {player} videoOpen={memory?.videoView === "open"} />
+      <Browser controls={windowControls} {drag} {player} videoOpen={memory?.videoView === "open"} signingIn={memory?.ytmForeignPage ?? false} />
       {#if upNext}<UpNext {player} {elapsed} />{/if}
       {#if nowPlayingOpen}
         <div class="layer overlay" in:fly={{ y: 28, duration: 260, easing: cubicOut }} out:fade={{ duration: 140 }}>

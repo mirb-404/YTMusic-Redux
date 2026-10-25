@@ -168,15 +168,27 @@ pub async fn music_guide(app: AppHandle) -> Result<Vec<parse::GuideEntry>> {
     Ok(entries)
 }
 
+/// The signed-in account, or `None` when signed out. The session cookie decides; YTM's
+/// account menu only adds the name and photo, so a failed menu request still counts as
+/// signed in.
 #[tauri::command]
-pub async fn music_signed_in(app: AppHandle) -> Result<bool> {
+pub async fn music_account(app: AppHandle) -> Result<Option<parse::Account>> {
     let cookies = cookies(&app).await?;
-    Ok(cookie(&cookies, "SAPISID").or(cookie(&cookies, "__Secure-3PAPISID")).is_some())
+    if cookie(&cookies, "SAPISID").or(cookie(&cookies, "__Secure-3PAPISID")).is_none() {
+        return Ok(None);
+    }
+    let menu = call(&app, "account/account_menu", "", json!({})).await.ok();
+    Ok(Some(menu.as_ref().and_then(parse::account).unwrap_or_default()))
 }
 
 #[tauri::command]
 pub fn music_sign_in(app: AppHandle) {
     ytm::sign_in(&app);
+}
+
+#[tauri::command]
+pub async fn music_sign_out(app: AppHandle) -> Result<()> {
+    ytm::sign_out(&app).await
 }
 
 /// Sends one of the requests an item's menu offers: like, library feedback, or an edit of

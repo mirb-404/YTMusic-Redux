@@ -198,8 +198,8 @@ mockIPC(
         return { queries: [[run(String(a.input)), run(" remix")], [run(String(a.input)), run(" live")]], items: [artist(1), song(3)] };
       case "music_guide":
         return guide;
-      case "music_signed_in":
-        return true;
+      case "music_account":
+        return { name: "Preview User", handle: "@preview", photo: [] };
       case "keyboard_bindings":
       case "companion_list":
         return [];

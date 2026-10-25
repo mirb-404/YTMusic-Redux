@@ -2,10 +2,7 @@
   import { onMount } from "svelte";
   import Icon from "../Icon.svelte";
   import type { IconName } from "../../lib/icons";
-  import { art, EXPLORE, HISTORY, HOME, LIBRARY, music, router, ui, type Endpoint, type GuideEntry } from "../../lib/music.svelte";
-
-  // Refreshed when the shell sees the session change (signing in).
-  let { session }: { session: number } = $props();
+  import { art, auth, EXPLORE, HISTORY, HOME, LIBRARY, music, refreshAccount, router, ui, type Endpoint, type GuideEntry } from "../../lib/music.svelte";
 
   // The page on screen shows its icon filled.
   const nav: { label: string; icon: IconName; active: IconName; endpoint: Endpoint }[] = [
@@ -16,7 +13,8 @@
   ];
 
   let playlists = $state<GuideEntry[]>([]);
-  let signedIn = $state(true);
+  // Unknown until the first check: neither the playlists nor the sign-in card show yet.
+  const signedIn = $derived(auth.account !== null);
 
   const activeId = $derived(router.current?.route.kind === "browse" ? router.current.route.endpoint.browseEndpoint?.browseId : null);
 
@@ -28,8 +26,8 @@
   }
 
   async function refresh() {
-    signedIn = await music.signedIn().catch(() => true);
-    playlists = signedIn ? await music.guide().catch(() => []) : [];
+    await refreshAccount();
+    playlists = auth.account ? await music.guide().catch(() => []) : [];
   }
 
   onMount(() => {
@@ -37,8 +35,9 @@
     return () => clearInterval(timer);
   });
 
+  // Reloaded when the session changes (signing in or out).
   $effect(() => {
-    session;
+    auth.session;
     ui.playlists;
     refresh();
   });
@@ -57,7 +56,7 @@
   <section class="library panel">
     <div class="label-row">
       <span class="label"><Icon name="library" size={24} />Your Library</span>
-      {#if signedIn}
+      {#if auth.account}
         <button class="new" title="New playlist" onclick={() => (ui.dialog = { target: null, create: true })}><Icon name="add" size={18} /></button>
       {/if}
     </div>

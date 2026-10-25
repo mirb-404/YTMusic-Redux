@@ -155,7 +155,12 @@ pub fn is_allowed_navigation(url: &Url) -> bool {
         return false;
     }
     let host = url.host_str().unwrap_or_default();
-    matches!(host, "consent.youtube.com" | "accounts.youtube.com" | "music.youtube.com")
+    // Google's sign-in steps for new and returning accounts: consent, account checks and
+    // security prompts (myaccount, gds), which Google opens in the same page.
+    matches!(
+        host,
+        "consent.youtube.com" | "accounts.youtube.com" | "music.youtube.com" | "consent.google.com" | "myaccount.google.com" | "gds.google.com"
+    )
         || (matches!(host, "www.youtube.com" | "youtube.com")
             && matches!(url.path(), "/signin" | "/premium" | "/musicpremium" | "/signin_prompt"))
         || is_google_accounts(host)
@@ -264,23 +269,23 @@ window.__YTMR_ADBLOCK__ = {adblock};
             match payload.event() {
                 PageLoadEvent::Started => {
                     // A new document (e.g. a login page) has no bridge header until it reports in.
+                    // Sign-in and consent pages are shown as soon as they start loading, so the
+                    // user sees Google's page coming up instead of nothing; returning to YouTube
+                    // Music hands the screen back to the app at once.
+                    let foreign = payload.url().host_str() != Some("music.youtube.com");
                     ctx.memory.update(app, |m| {
                         m.ytm_view_loading_status = "Loading YouTube Music...".into();
                         m.ytm_owns_header = false;
+                        m.ytm_foreign_page = foreign;
                     });
-                    windows::layout_main(app);
-                }
-                PageLoadEvent::Finished => {
-                    let host = payload.url().host_str().unwrap_or_default().to_string();
-                    let foreign = host != "music.youtube.com";
-                    ctx.memory.update(app, |m| m.ytm_foreign_page = foreign);
-                    if !foreign {
+                    // Sign-in pages have no bridge to report in; show them so the user can proceed.
+                    if foreign {
+                        mark_loaded(app);
+                    } else {
                         windows::layout_main(app);
                     }
-                    // Login and consent pages have no bridge; show them so the user can proceed.
-                    if host == "consent.youtube.com" || is_google_accounts(&host) {
-                        mark_loaded(app);
-                    }
+                }
+                PageLoadEvent::Finished => {
                     ctx.memory.update(app, |m| m.ytm_view_loading_status = "Loaded YouTube Music".into());
                     let _ = view.set_zoom(f64::from(ctx.settings.get().appearance.zoom) / 100.0);
                 }
@@ -326,6 +331,33 @@ pub fn sign_in(app: &AppHandle) {
     }
 }
 
+/// Signs out of YouTube Music: the YTM view's cookies are deleted, then YTM reloads signed
+/// out. Returns once the cookies are gone, so session checks after it see the signed-out state.
+pub async fn sign_out(app: &AppHandle) -> Result<(), String> {
+    let view = webview(app).ok_or("YouTube Music is not loaded")?;
+    #[cfg(windows)]
+    {
+        let (done, deleted) = tokio::sync::oneshot::channel();
+        view.with_webview(move |w| unsafe {
+            use webview2_com::Microsoft::Web::WebView2::Win32::ICoreWebView2_2;
+            use windows_core::Interface;
+            let result = w
+                .controller()
+                .CoreWebView2()
+                .and_then(|c| c.cast::<ICoreWebView2_2>())
+                .and_then(|c| c.CookieManager())
+                .and_then(|m| m.DeleteAllCookies())
+                .map_err(|e| e.to_string());
+            let _ = done.send(result);
+        })
+        .map_err(|e| e.to_string())?;
+        deleted.await.map_err(|e| e.to_string())??;
+    }
+    #[cfg(not(windows))]
+    view.clear_all_browsing_data().map_err(|e| e.to_string())?;
+    view.navigate(YTM_HOME.parse().unwrap()).map_err(|e| e.to_string())
+}
+
 /// Stops playback and empties the queue, so the player bars show nothing playing. The track
 /// is also forgotten, so "continue where you left off" does not bring it back on restart.
 pub fn close_track(app: &AppHandle) {
@@ -343,10 +375,10 @@ pub fn close_track(app: &AppHandle) {
 
 /// Goes to YTM's home page inside the running app. Reloading the URL instead would restart
 /// the whole page, which takes seconds; the full load remains the fallback while the bridge
-/// is not up (a stuck first load, or a login page).
+/// is not up (a stuck first load, or a login page, which this leaves to cancel signing in).
 pub fn navigate_home(app: &AppHandle) {
     let Some(view) = webview(app) else { return };
-    if app_ctx(app).memory.read(|m| m.ytm_view_loading) {
+    if app_ctx(app).memory.read(|m| m.ytm_view_loading || m.ytm_foreign_page) {
         let _ = view.navigate(YTM_HOME.parse().unwrap());
     } else {
         call(app, "navigateHome", &[]);
@@ -409,6 +441,8 @@ mod tests {
         assert!(is_allowed_navigation(&u("https://music.youtube.com/watch?v=x")));
         assert!(is_allowed_navigation(&u("https://accounts.google.co.uk/signin")));
         assert!(is_allowed_navigation(&u("https://www.youtube.com/signin")));
+        assert!(is_allowed_navigation(&u("https://myaccount.google.com/")));
+        assert!(!is_allowed_navigation(&u("https://www.google.com/")));
         assert!(!is_allowed_navigation(&u("https://www.youtube.com/watch?v=x")));
         assert!(!is_allowed_navigation(&u("https://accounts.google.evil/")));
         assert!(!is_allowed_navigation(&u("https://example.com/")));

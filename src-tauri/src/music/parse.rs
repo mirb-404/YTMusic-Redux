@@ -830,6 +830,25 @@ pub fn guide_covers(entries: &mut [GuideEntry], library: &Page) {
     }
 }
 
+#[derive(Debug, Clone, Default, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct Account {
+    pub name: String,
+    /// The channel handle (`@name`) or, without a channel, the account's email.
+    pub handle: String,
+    pub photo: Vec<Thumbnail>,
+}
+
+/// The signed-in account from YTM's account menu.
+pub fn account(response: &Value) -> Option<Account> {
+    let header = get(response, &["actions", "0", "openPopupAction", "popup", "multiPageMenuRenderer", "header", "activeAccountHeaderRenderer"])?;
+    Some(Account {
+        name: text(header.get("accountName")),
+        handle: [header.get("channelHandle"), header.get("email")].into_iter().map(text).find(|s| !s.is_empty()).unwrap_or_default(),
+        photo: thumbnails(&json!({ "thumbnail": header.get("accountPhoto") })),
+    })
+}
+
 #[derive(Debug, Clone, Serialize)]
 #[serde(rename_all = "camelCase")]
 pub struct PlaylistTarget {
@@ -863,6 +882,19 @@ mod tests {
     fn fixture(name: &str) -> Value {
         let path = format!("{}/tests/fixtures/music/{name}.json", env!("CARGO_MANIFEST_DIR"));
         serde_json::from_str(&std::fs::read_to_string(path).unwrap()).unwrap()
+    }
+
+    #[test]
+    fn account_comes_from_the_menu_header() {
+        let header = json!({
+            "accountName": { "runs": [{ "text": "Ada" }] },
+            "channelHandle": { "runs": [{ "text": "@ada" }] },
+            "accountPhoto": { "thumbnails": [{ "url": "https://yt3.ggpht.com/a=s88", "width": 88, "height": 88 }] }
+        });
+        let response = json!({ "actions": [{ "openPopupAction": { "popup": { "multiPageMenuRenderer": { "header": { "activeAccountHeaderRenderer": header } } } } }] });
+        let account = account(&response).unwrap();
+        assert_eq!((account.name.as_str(), account.handle.as_str(), account.photo.len()), ("Ada", "@ada", 1));
+        assert!(super::account(&json!({})).is_none());
     }
 
     #[test]

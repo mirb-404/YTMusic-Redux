@@ -68,6 +68,7 @@ export type Chip = { text: string; endpoint: Endpoint | null; selected: boolean 
 export type Page = { header: Header | null; chips: Chip[]; sections: Section[]; continuation: Continuation | null };
 export type Suggestions = { queries: Run[][]; items: Item[] };
 export type GuideEntry = { title: string; subtitle: string; endpoint: Endpoint; play: Endpoint | null; thumbnails: Thumbnail[] };
+export type Account = { name: string; handle: string; photo: Thumbnail[] };
 
 export const music = {
   browse: (endpoint: Endpoint) => invoke<Page>("music_browse", { endpoint }),
@@ -75,9 +76,10 @@ export const music = {
   continue: (continuation: Continuation) => invoke<Page>("music_continue", { continuation }),
   suggestions: (input: string) => invoke<Suggestions>("music_suggestions", { input }),
   guide: () => invoke<GuideEntry[]>("music_guide"),
-  signedIn: () => invoke<boolean>("music_signed_in"),
+  account: () => invoke<Account | null>("music_account"),
   play: (endpoint: Endpoint) => invoke<void>("music_play", { endpoint }),
   signIn: () => invoke<void>("music_sign_in"),
+  signOut: () => invoke<void>("music_sign_out"),
   service: (endpoint: Record<string, unknown>) => invoke<void>("music_service", { endpoint }),
   rate: (videoId: string, status: Like["status"]) => invoke<void>("music_rate", { videoId, status }),
   queue: (next: boolean, videoId: string | null, playlistId: string | null) => invoke<void>("music_queue", { next, videoId, playlistId }),
@@ -89,6 +91,24 @@ export const music = {
   createPlaylist: (title: string, description: string, privacy: string, videoId: string | null, sourcePlaylistId: string | null) =>
     invoke<string>("music_create_playlist", { title, description, privacy, videoId, sourcePlaylistId })
 };
+
+/**
+ * The YouTube Music sign-in. `account` is `undefined` until first checked and `null` when
+ * signed out. `session` is bumped whenever the session changes (signing in or out), so the
+ * pages and the sidebar reload.
+ */
+export const auth = $state({ account: undefined as Account | null | undefined, session: 0 });
+
+/** Checks the session again; a failed check keeps what was known. */
+export async function refreshAccount() {
+  auth.account = await music.account().catch(() => auth.account);
+}
+
+export async function signOut() {
+  await music.signOut();
+  auth.account = null;
+  auth.session++;
+}
 
 /** The playing track, kept by the shell, so rows and cards can mark it. */
 export const nowPlaying = $state({ id: "", playing: false });

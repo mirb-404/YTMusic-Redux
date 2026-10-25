@@ -11,17 +11,18 @@
   import type { PlayerState } from "../../lib/api";
   import SearchBox from "./SearchBox.svelte";
   import Sidebar from "./Sidebar.svelte";
-  import { EXPLORE, HOME, LIBRARY, router, ui } from "../../lib/music.svelte";
+  import AccountButton from "./AccountButton.svelte";
+  import { auth, EXPLORE, HOME, LIBRARY, router, ui } from "../../lib/music.svelte";
 
   // The app's own YouTube Music pages: top bar with history and search, sidebar, and the
   // page, drawn from YTM's API instead of YTM's website.
   let {
     controls,
     drag,
-    session,
     player,
-    videoOpen = false
-  }: { controls: Snippet; drag?: boolean; session: number; player: PlayerState | null; videoOpen?: boolean } = $props();
+    videoOpen = false,
+    signingIn = false
+  }: { controls: Snippet; drag?: boolean; player: PlayerState | null; videoOpen?: boolean; signingIn?: boolean } = $props();
 
   // The video view (YTM's player page) covers the pages below the top bar: back leaves it,
   // and going anywhere else closes it.
@@ -84,10 +85,10 @@
     tick().then(() => scroller?.scrollTo({ top }));
   });
 
-  // Signing in changes every page; reload the one on screen.
+  // Signing in or out changes every page; reload the one on screen.
   let firstSession = true;
   $effect(() => {
-    session;
+    auth.session;
     if (firstSession) {
       firstSession = false;
       return;
@@ -105,11 +106,11 @@
     <button class="home" class:active={onHome} title="Home" onclick={() => router.go({ kind: "browse", endpoint: HOME })}><Icon name={onHome ? "homeFilled" : "home"} size={24} /></button>
     <div class="search-slot" data-tour="search"><SearchBox bind:this={search} /></div>
   </div>
-  <div class="right">{@render controls()}</div>
+  <div class="right"><AccountButton {signingIn} />{@render controls()}</div>
 </header>
 
 <div class="body">
-  <Sidebar {session} />
+  <Sidebar />
   <main class="content" class:behind={videoOpen} class:scrolled bind:this={scroller} onscroll={() => (scrolled = (scroller?.scrollTop ?? 0) > 4)}>
     {#if entry}
       {#key router.index}
